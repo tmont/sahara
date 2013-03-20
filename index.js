@@ -1,1 +1,1 @@
-module.exports = require('./src/sahara');
+module.exports = require('./src/container');
