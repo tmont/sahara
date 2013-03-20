@@ -22,6 +22,15 @@ function Container() {
 }
 
 Container.prototype = {
+	/**
+	 * Registers a type from a constructor
+	 *
+	 * @param {Function} ctor The constructor of the type to register
+	 * @param {String} [name] The name of the type; required if a named function is not given
+	 * @param {Object} [lifetime] The lifetime manager for this type, defaults to
+	 * sahara.Lifetime.Transient
+	 * @return {Container}
+	 */
 	registerType: function(ctor, name, lifetime) {
 		var data = /^function(?:[\s+](\w+))?\s*\((.*?)\)\s*\{/.exec(ctor.toString());
 		if (!data) {
@@ -72,6 +81,15 @@ Container.prototype = {
 		return this;
 	},
 
+	/**
+	 * Registers a specific instance of a type
+	 *
+	 * @param {String} typeName The name of the instance
+	 * @param {*} instance The instance to store
+	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
+	 * to sahara.Lifetime.Transient
+	 * @return {Container}
+	 */
 	registerInstance: function(typeName, instance, lifetime) {
 		if (instance === undefined) {
 			throw new TypeError('No instance given');
@@ -81,6 +99,12 @@ Container.prototype = {
 		return this;
 	},
 
+	/**
+	 * Resolves a type to an instance
+	 * 
+	 * @param {String} typeName The type to resolve
+	 * @return {*}
+	 */
 	resolve: function(typeName) {
 		var registration = this.registrations[typeName], instance;
 		if (!registration) {
