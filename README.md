@@ -326,12 +326,11 @@ BlogController.prototype = {
 
 Now, configure the container:
 ```javascript
-var jade = require('jade'),
-	sahara = require('sahara');
+var sahara = require('sahara');
 
 var container = new sahara.Container()
 	.registerInstance(viewDirectory, { key: 'ViewDirectory' })
-	.registerInstance(jade, { key: 'ViewEngine' })
+	.registerInstance(viewEngine, { key: 'ViewEngine' })
 	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: new sahara.Lifetime.Memory() })
 	.registerType(DbConnection, { lifetime: new sahara.Lifetime.Memory() })
 	.registerType(DbFacade)
