@@ -144,13 +144,13 @@ with an expensive construction time (e.g. a database connection) that
 you would want to reuse for the duration of your script.
 
 ```javascript
-var Lifetime = require('sahara').Lifetime;
+var lifetime = require('sahara').lifetime;
 
 function DbConnection() {
 	this.client = mysql.connect({...});
 }
 
-container.registerType(DbConnection, { lifetime: new Lifetime.Memory() });
+container.registerType(DbConnection, { lifetime: lifetime.memory() });
 ```
 
 ### Property and method injection
@@ -167,13 +167,13 @@ There are two ways to do it. You can simply give the value of the
 property:
 
 ```javascript
-var Inject = sahara.Inject;
+var inject = sahara.inject;
 
 function Foo() {
 	this.value = 'foo';
 }
 
-container.registerType(Foo, { injections: [ new Inject.PropertyValue('value', 'bar') ] });
+container.registerType(Foo, { injections: [ inject.propertyValue('value', 'bar') ] });
 console.log(container.resolve(Foo).value); //"bar"
 ```
 
@@ -189,7 +189,7 @@ function Bar() {
 }
 
 container
-	.registerType(Foo, { injections: [ new Inject.Property('value', 'Bar') ] })
+	.registerType(Foo, { injections: [ inject.property('value', 'Bar') ] })
 	.registerType(Bar);
 console.log(container.resolve(Foo).value); //"I am Bar"
 ```
@@ -206,7 +206,7 @@ function Foo() {
 	};
 }
 
-container.registerType(Foo, { injections: [ new Inject.Method('setValue', [ 'bar' ]) ] });
+container.registerType(Foo, { injections: [ inject.method('setValue', [ 'bar' ]) ] });
 console.log(container.resolve(Foo).value); //"bar"
 ```
 
@@ -225,7 +225,7 @@ function Foo() {
 }
 
 container
-	.registerType(Foo, { injections: [ new Inject.Method('setValue') ] })
+	.registerType(Foo, { injections: [ inject.method('setValue') ] })
 	.registerInstance('This is the new value', { key: 'TheNewValue' });
 console.log(container.resolve(Foo).value); //"This is the new value"
 ```
@@ -240,7 +240,7 @@ function Foo() {
 	this.value = 'foo';
 }
 
-container.registerType(Foo, { injections: [ new Inject.PropertyValue('value', 'bar') ] });
+container.registerType(Foo, { injections: [ inject.propertyValue('value', 'bar') ] });
 
 var instance = new Foo();
 console.log(instance.value); //"foo"
@@ -331,8 +331,8 @@ var sahara = require('sahara');
 var container = new sahara.Container()
 	.registerInstance(viewDirectory, { key: 'ViewDirectory' })
 	.registerInstance(viewEngine, { key: 'ViewEngine' })
-	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: new sahara.Lifetime.Memory() })
-	.registerType(DbConnection, { lifetime: new sahara.Lifetime.Memory() })
+	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: sahara.lifetime.memory() })
+	.registerType(DbConnection, { lifetime: sahara.lifetime.memory() })
 	.registerType(DbFacade)
 	.registerType(ViewRenderer)
 	.registerType(BlogController);

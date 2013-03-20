@@ -11,14 +11,14 @@ PropertyValueInjection.prototype = {
 	}
 };
 
-function PropertyInjection(name, type) {
+function PropertyInjection(name, key) {
 	this.name = name;
-	this.type = type;
+	this.key = key;
 }
 
 PropertyInjection.prototype = {
 	inject: function(object, container) {
-		object[this.name] = container.resolve(this.type);
+		object[this.name] = container.resolve(this.key);
 	}
 };
 

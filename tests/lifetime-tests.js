@@ -1,16 +1,16 @@
 var should = require('should'),
-	Lifetime = require('../').Lifetime;
+	lifetime = require('../').lifetime;
 
 describe('Lifetime', function() {
 	it('should store and fetch transiently', function() {
-		var lifetime = new Lifetime.Transient();
-		lifetime.store('foo');
-		should.not.exist(lifetime.fetch());
+		var transientLifetime = lifetime.transient();
+		transientLifetime.store('foo');
+		should.not.exist(transientLifetime.fetch());
 	});
 
 	it('should store and fetch using memory backing store', function() {
-		var lifetime = new Lifetime.Memory();
-		lifetime.store('foo');
-		lifetime.fetch().should.equal('foo');
+		var memory = lifetime.memory();
+		memory.store('foo');
+		memory.fetch().should.equal('foo');
 	});
 });
