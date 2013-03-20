@@ -1,0 +1,28 @@
+{
+	"name": "sahara",
+	"version": "0.0.1",
+	"description": "A tiny inversion-of-control container for node",
+	"keywords": [ "ioc", "dependency", "injection", "container" ],
+	"directories": {
+		"lib": "src"
+	},
+
+	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tmont/sahara.git"
+	},
+
+	"dependencies": {
+		"dep-graph": "1.1.0"
+	},
+
+	"devDependencies": {
+		"mocha": "1.8.1",
+		"should": "1.2.2"
+	},
+
+	"scripts": {
+		"test": "./node_modules/.bin/mocha -R spec tests"
+	}
+}
