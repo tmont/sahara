@@ -179,6 +179,11 @@ dependencies that are specified in the constructor. What if you have
 dependencies that are not in the constructor? Well, there are a few ways
 to alleviate that problem as well.
 
+**NOTE:** cyclic dependencies are not detected when performing property
+and method injection, because I haven't figured out a clever way of
+doing it yet. So if you see a "maximum stack size exceeded" error,
+you probably created a cyclic dependency.
+
 #### Property injection
 Property injection simply sets the value of a property on an object
 when it is `resolve()`'d.
