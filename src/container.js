@@ -11,9 +11,13 @@ function TypeRegistration(name, lifetime, typeInfo) {
 	this.typeInfo = typeInfo;
 }
 
+function InstanceRegistration(name, lifetime, instance) {
+	Registration.call(this, name, lifetime);
+	this.instance = instance;
+}
+
 function Container() {
 	this.registrations = {};
-	this.instances = {};
 	this.graph = new DependencyGraph();
 }
 
@@ -73,8 +77,7 @@ Container.prototype = {
 			throw new TypeError('No instance given');
 		}
 
-		this.registrations[typeName] = new Registration(typeName, lifetime);
-		this.instances[typeName] = instance;
+		this.registrations[typeName] = new InstanceRegistration(typeName, lifetime, instance);
 		return this;
 	},
 
@@ -89,10 +92,9 @@ Container.prototype = {
 			return existing;
 		}
 
-		if (registration instanceof Registration) {
-			instance = this.instances[typeName];
-			registration.lifetime.store(instance);
-			return instance;
+		if (registration instanceof InstanceRegistration) {
+			registration.lifetime.store(registration.instance);
+			return registration.instance;
 		}
 
 		//resolve dependencies
