@@ -3,7 +3,7 @@
 
 Sahara is a simple little inversion of control container. Specifically, it
 handles dependency injection. Even more specifically, it handles
-constructor argument injection. It even does some fancy type parsing
+constructor, property and method injection. It even does some fancy type parsing
 of function signatures, if you're into that kind of thing.
 
 ## Installation
