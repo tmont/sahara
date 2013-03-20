@@ -207,7 +207,7 @@ function Foo() {
 }
 
 container.registerType(Foo, { injections: [ new Inject.Method('setValue', [ 'bar' ]) ] });
-console.log(container.resolve(Foo).val;ue); //"bar"
+console.log(container.resolve(Foo).value); //"bar"
 ```
 
 Or you can let the container resolve the method's arguments.  To
