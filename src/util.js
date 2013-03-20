@@ -1,4 +1,4 @@
-exports.getTypeInfo = function(ctor, key) {
+exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 	var data = /^function(?:[\s+](\w+))?\s*\((.*?)\)\s*\{/.exec(ctor.toString());
 	if (!data) {
 		throw new Error('Unable to parse function definition: ' + ctor.toString());
@@ -16,7 +16,7 @@ exports.getTypeInfo = function(ctor, key) {
 		name: typeName
 	};
 
-	if (signature) {
+	if (!ignoreSignature && signature) {
 		signature.split(',').forEach(function(param, i) {
 			//ferret out the type of each argument based on inline jsdoc:
 			//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs

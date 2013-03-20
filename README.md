@@ -117,7 +117,27 @@ container.registerInstance(fooInstance, { key: 'AnotherSpecialName' });
 var sameInstance = container.resolve('AnotherSpecialName');
 ```
 
-#### Cyclic dependencies
+### Registering a factory
+In some cases you'll want to defer the creation of an object until
+it's absolutely needed. You can do this by using `container.registerFactory()`.
+Your factory function should take in one argument, the container.
+
+This is mostly used as a replacement for `registerInstance()`, but for
+the times when you don't want to create the instance immediately.
+
+Note that the `key` option is **required** when using `registerFactory()`.
+
+```javascript
+function Foo() {}
+
+container.registerFactory(function(container) {
+	return new Foo();
+}, { key: 'MyKey' });
+
+container.resolve('MyKey');
+```
+
+### Cyclic dependencies
 ...are bad.
 
 ```javascript

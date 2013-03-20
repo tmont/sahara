@@ -53,6 +53,36 @@ describe('Container', function() {
 		});
 	});
 
+	describe('registration from factory', function() {
+		it('should register and resolve factory', function() {
+			var instance = {},
+				resolved = new Container()
+					.registerFactory(function() { return instance; }, { key: 'poopoo' })
+					.resolve('poopoo');
+
+			resolved.should.equal(instance);
+		});
+
+		it('should throw if key is not provided', function() {
+			(function() { new Container().registerFactory(function() {}); })
+				.should
+				.throwError('"options.key" must be passed to registerFactory()');
+		});
+
+		it('should pass container into factory function', function() {
+			var instance = {},
+				resolved = new Container()
+					.registerFactory(function(container) {
+						should.exist(container);
+						container.should.be.instanceOf(Container);
+						return instance;
+					}, { key: 'poopoo' })
+					.resolve('poopoo');
+
+			resolved.should.equal(instance);
+		});
+	});
+
 	describe('registration from function definition', function() {
 		it('should require specified key if named function not given', function() {
 			(function() { new Container().registerType(function() {}); })

@@ -18,6 +18,11 @@ function InstanceRegistration(name, lifetime, injections, instance) {
 	this.instance = instance;
 }
 
+function FactoryRegistration(name, lifetime, injections, factory) {
+	Registration.call(this, name, lifetime, injections);
+	this.factory = factory;
+}
+
 function ObjectBuilder(dependencyResolver) {
 	this.dependencyResolver = dependencyResolver;
 }
@@ -58,7 +63,7 @@ Container.prototype = {
 	 *
 	 * @param {Function} ctor The constructor of the type to register
 	 * @param {Object} [options]
-	 * @param {String} [options.key] The resolution key; defaults to ctor.name
+	 * @param {String} [options.key] The resolution key
 	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
 	 * @param {Object[]} [options.injections] Array of injections to perform upon resolution
@@ -101,12 +106,40 @@ Container.prototype = {
 	 */
 	registerInstance: function(instance, options) {
 		options = options || {};
-		var typeName = options.key || (instance && instance.constructor && instance.constructor.name);
-		this.registrations[typeName] = new InstanceRegistration(
-			typeName,
+		var key = options.key || (instance && instance.constructor && instance.constructor.name);
+		this.registrations[key] = new InstanceRegistration(
+			key,
 			options.lifetime,
 			options.injections,
 			instance
+		);
+		return this;
+	},
+
+	/**
+	 * Registers a factory function for a type that will create
+	 * the object
+	 *
+	 * @param {Function} factory A function that creates the object; this function
+	 * should take one parameter, the container
+	 * @param {Object} options
+	 * @param {String} options.key The resolution key
+	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
+	 * to sahara.Lifetime.Transient
+	 * @param {Object[]} [options.injections] Array of injections to perform upon resolution
+	 * @return {Container}
+	 */
+	registerFactory: function(factory, options) {
+		options = options || {};
+		if (!options.key) {
+			throw new Error('"options.key" must be passed to registerFactory()');
+		}
+
+		this.registrations[options.key] = new FactoryRegistration(
+			options.key,
+			options.lifetime,
+			options.injections,
+			factory
 		);
 		return this;
 	},
@@ -132,9 +165,14 @@ Container.prototype = {
 			return existing;
 		}
 
-		var instance = registration instanceof InstanceRegistration
-			? registration.instance
-			: this.builder.newInstance(registration.typeInfo);
+		var instance;
+		if (registration instanceof InstanceRegistration) {
+			instance = registration.instance;
+		} else if (registration instanceof FactoryRegistration) {
+			instance = registration.factory(this);
+		} else {
+			instance = this.builder.newInstance(registration.typeInfo);
+		}
 
 		this.inject(instance, key);
 		registration.lifetime.store(instance);
