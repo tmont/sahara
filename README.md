@@ -16,7 +16,7 @@ case, you shove an object into it using `registerInstance()` and retrieve it
 using `resolve()`:
 
 ```javascript
-var Container = require('sahara'),
+var Container = require('sahara').Container,
     container = new Container();
 
 var myObject = { oh: 'hai mark' };
@@ -88,6 +88,32 @@ function Foo(/** Bar */bar) {}
 function Bar(/** Foo */foo) {}
 
 container.registerType(Foo); //throws "Cyclic dependency from Foo to Bar"
+```
+
+### Lifetime management
+But wait, there's more configuration! To give you more fine-grained control
+over the objects that Sahara creates, you can specify a **Lifetime**. This
+basically tells Sahara how to store the object, in effect governing the
+lifetime of the object.
+
+The default lifetime is the `TransientLifetime`, which means that every time
+you call `resolve()` Sahara will pretend like it's never seen this type
+before and run the object building sequence every time.
+
+The other bundled lifetime is the `MemoryLifetime`, which will store the
+object instance in memory, and reuse that instance every time the container
+attempts to resolve that type. This is useful when you have an object
+with an expensive construction time (e.g. a database connection) that
+you would want to reuse for the duration of your script.
+
+```javascript
+var Lifetime = require('sahara').Lifetime;
+
+function DbConnection() {
+	this.client = mysql.connect({...});
+}
+
+container.registerType(DbConnection, null, new Lifetime.Memory());
 ```
 
 ## In the real world
@@ -168,8 +194,10 @@ BlogController.prototype = {
 
 Now, configure the container:
 ```javascript
-var jade = require('jade');
-var container = require('sahara')()
+var jade = require('jade'),
+	Container = require('sahara').Container;
+
+var container = new Container()
 	.registerInstance('DbConnectionInfo', connectionInfo)
 	.registerInstance('ViewDirectory', viewDirectory)
 	.registerInstance('ViewEngine', jade)

@@ -1,5 +1,5 @@
 var should = require('should'),
-	Container = require('../');
+	Container = require('../').Container;
 
 describe('Container', function() {
 	it('should register and resolve instance', function() {
