@@ -1,24 +1,55 @@
 var DependencyGraph = require('dep-graph'),
-	lifetimes = require('./lifetime');
+	lifetimes = require('./lifetime'),
+	util = require('./util');
 
-function Registration(name, lifetime) {
+function Registration(name, lifetime, injections) {
 	this.name = name;
 	this.lifetime = lifetime || new lifetimes.Transient();
+	this.injections = injections || [];
 }
 
-function TypeRegistration(name, lifetime, typeInfo) {
-	Registration.call(this, name, lifetime);
+function TypeRegistration(name, lifetime, injections, typeInfo) {
+	Registration.call(this, name, lifetime, injections);
 	this.typeInfo = typeInfo;
 }
 
-function InstanceRegistration(name, lifetime, instance) {
-	Registration.call(this, name, lifetime);
+function InstanceRegistration(name, lifetime, injections, instance) {
+	Registration.call(this, name, lifetime, injections);
 	this.instance = instance;
 }
+
+function ObjectBuilder(dependencyResolver) {
+	this.dependencyResolver = dependencyResolver;
+}
+
+ObjectBuilder.prototype = {
+	newInstance: function(typeInfo) {
+		var params = typeInfo.args,
+			ctor = typeInfo.ctor;
+
+		params.sort(function(a, b) {
+			if (a.position === b.position) {
+				return 0;
+			}
+
+			return a.position < b.position ? -1 : 1;
+		});
+
+		var args = params.map(function(typeData) {
+			return this.dependencyResolver(typeData.type);
+		}.bind(this));
+
+		//dynamically invoke the constructor
+		var instance = Object.create(ctor.prototype);
+		ctor.apply(instance, args);
+		return instance;
+	}
+};
 
 function Container() {
 	this.registrations = {};
 	this.graph = new DependencyGraph();
+	this.builder = new ObjectBuilder(this.resolve.bind(this));
 }
 
 Container.prototype = {
@@ -29,46 +60,14 @@ Container.prototype = {
 	 * @param {String} [name] The name of the type; required if a named function is not given
 	 * @param {Object} [lifetime] The lifetime manager for this type, defaults to
 	 * sahara.Lifetime.Transient
+     * @param {Injection[]} [injections] Array of injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerType: function(ctor, name, lifetime) {
-		var data = /^function(?:[\s+](\w+))?\s*\((.*?)\)\s*\{/.exec(ctor.toString());
-		if (!data) {
-			throw new Error('Unable to parse function definition: ' + ctor.toString());
-		}
+	registerType: function(ctor, name, lifetime, injections) {
+		var typeInfo = util.getTypeInfo(ctor, name),
+			typeName = typeInfo.name;
 
-		var typeName = data[1] || name,
-			signature = data[2].trim();
-		if (!typeName) {
-			throw new Error('"name" must be given if a named function is not');
-		}
-
-		var typeInfo = {
-			args: [],
-			ctor: ctor
-		};
-
-		if (signature) {
-			signature.split(',').forEach(function(param, i) {
-				//ferret out the type of each argument based on inline jsdoc:
-				//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs
-				var data = /^\/\*\*\s*(\w+)\s*\*\/\s*(\w+)\s*$/.exec(param.trim());
-				if (!data) {
-					throw new Error(
-						'Unable to determine type of parameter at position ' + (i + 1) +
-							' for type "' + typeName + '"'
-					);
-				}
-
-				typeInfo.args.push({
-					position: i,
-					type: data[1],
-					name: data[2]
-				});
-			});
-		}
-
-		this.registrations[typeName] = new TypeRegistration(typeName, lifetime, typeInfo);
+		this.registrations[typeName] = new TypeRegistration(typeName, lifetime, injections, typeInfo);
 
 		//add to the dependency graph to verify that there are no
 		//circular dependencies (the graph isn't used anywhere else)
@@ -88,25 +87,26 @@ Container.prototype = {
 	 * @param {*} instance The instance to store
 	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
+	 * @param {Injection[]} [injections] Array of injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerInstance: function(typeName, instance, lifetime) {
+	registerInstance: function(typeName, instance, lifetime, injections) {
 		if (instance === undefined) {
 			throw new TypeError('No instance given');
 		}
 
-		this.registrations[typeName] = new InstanceRegistration(typeName, lifetime, instance);
+		this.registrations[typeName] = new InstanceRegistration(typeName, lifetime, injections, instance);
 		return this;
 	},
 
 	/**
 	 * Resolves a type to an instance
-	 * 
+	 *
 	 * @param {String} typeName The type to resolve
 	 * @return {*}
 	 */
 	resolve: function(typeName) {
-		var registration = this.registrations[typeName], instance;
+		var registration = this.registrations[typeName];
 		if (!registration) {
 			throw new Error('The type "' + typeName + '" is not registered in the container');
 		}
@@ -116,32 +116,30 @@ Container.prototype = {
 			return existing;
 		}
 
-		if (registration instanceof InstanceRegistration) {
-			registration.lifetime.store(registration.instance);
-			return registration.instance;
-		}
+		var instance = registration instanceof InstanceRegistration
+			? registration.instance
+			: this.builder.newInstance(registration.typeInfo);
 
-		//resolve dependencies
-		var params = registration.typeInfo.args,
-			ctor = registration.typeInfo.ctor;
-
-		params.sort(function(a, b) {
-			if (a.position === b.position) {
-				return 0;
-			}
-
-			return a.position < b.position ? -1 : 1;
-		});
-
-		var args = params.map(function(typeData) {
-			return this.resolve(typeData.type);
-		}.bind(this));
-
-		//dynamically invoke the constructor
-		instance = Object.create(ctor.prototype);
-		ctor.apply(instance, args);
+		this.inject(typeName, instance);
 		registration.lifetime.store(instance);
 		return instance;
+	},
+
+	/**
+	 * Performs injection on the given instance
+	 *
+	 * @param {String} typeName The name of the type to perform injection for
+	 * @param {*} instance The instance to perform injection on
+	 */
+	inject: function(typeName, instance) {
+		var registration = this.registrations[typeName];
+		if (!registration) {
+			throw new Error('The type "' + typeName + '" is not registered in the container');
+		}
+
+		registration.injections.forEach(function(injection) {
+			injection.inject(instance, this);
+		}.bind(this));
 	}
 };
 

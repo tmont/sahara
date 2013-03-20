@@ -116,6 +116,101 @@ function DbConnection() {
 container.registerType(DbConnection, null, new Lifetime.Memory());
 ```
 
+### Property and method injection
+By default, Sahara performs *constructor injection*. That is, it resolves
+dependencies that are specified in the constructor. What if you have
+dependencies that are not in the constructor? Well, there are a few ways
+to alleviate that problem as well.
+
+#### Property injection
+Property injection simply sets the value of a property on an object
+when it is `resolve()`'d.
+
+There are two ways to do it. You can simply give the value of the
+property:
+
+```javascript
+var Inject = sahara.Inject;
+
+function Foo() {
+	this.name = 'foo';
+}
+
+container.registerType(Foo, null, null, [ new Inject.PropertyValue('name', 'bar') ]);
+console.log(container.resolve('Foo').name); //"bar"
+```
+
+Or you can have the container resolve the type. In this case, you
+must specify the property's type:
+
+```javascript
+function Foo() {
+	this.name = 'foo';
+}
+function Bar() {
+	this.toString = function() { return 'I am Bar'; };
+}
+
+container
+	.registerType(Foo, null, null, [ new Inject.Property('name', 'Bar') ])
+	.registerType(Bar);
+console.log(container.resolve('Foo').name); //"I am Bar"
+```
+
+#### Method injection
+Method injection invokes the specified method with optional arguments
+during resolution. Again, you can specify the arguments explicitly:
+
+```javascript
+function Foo() {
+	this.name = 'foo';
+	this.setName = function(newName) {
+		this.name = newName;
+	};
+}
+
+container.registerType(Foo, null, null, [ new Inject.Method('setName', [ 'bar' ]) ]);
+console.log(container.resolve('Foo').name); //"bar"
+```
+
+Or you can let the container resolve the method's arguments.  To
+accomplish this, simply omit the optional array of arguments to the
+`Method` constructor.Note that this uses the same procedure as
+`Container.prototype.registerType`, so you'll need to specify the
+types of each parameter with a comment.
+
+```javascript
+function Foo() {
+	this.name = 'foo';
+	this.setName = function(/** TheNewName */newName) {
+		this.name = newName;
+	};
+}
+
+container
+	.registerType(Foo, null, null, [ new Inject.Method('setName') ])
+	.registerInstance('TheNewName', 'This is the new name');
+console.log(container.resolve('Foo').name); //"This is the new name"
+```
+
+#### Manual injection
+The container also provides a method for performing injection on an
+already existing object. This can be useful if an object was created
+without using the container.
+
+```javascript
+function Foo() {
+	this.name = 'foo';
+}
+
+container.registerType(Foo, null, null, [ new Inject.PropertyValue('name', 'bar') ]);
+
+var instance = new Foo();
+console.log(instance.name); //"foo"
+container.inject('Foo', instance);
+console.log(instance.name); //"bar"
+```
+
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects
 depending on other objects.
