@@ -20,7 +20,7 @@ var Container = require('sahara').Container,
     container = new Container();
 
 var myObject = { oh: 'hai mark' };
-container.registerInstance('MyObject', myObject);
+container.registerInstance(myObject, { key: 'MyObject' });
 var instance = container.resolve('MyObject');
 console.log(myObject === instance); //true, they are literally the same instance
 ```
@@ -36,7 +36,7 @@ function AnotherObject(/** MyObject */theObject) {
 
 container.registerType(AnotherObject);
 
-var anotherObject = container.resolve('AnotherObject');
+var anotherObject = container.resolve(AnotherObject);
 console.log(anotherObject.obj); // { oh: 'hai mark' }
 ```
 
@@ -64,20 +64,57 @@ container
 	.registerInstance('Foo', new Foo('oh hai mark'))
 	.registerType(Bar)
 	.registerType(Baz)
-	.resolve('Baz')
+	.resolve(Baz)
 	.bar.foo.message; //"oh hai mark"
 ```
 
-**NOTE**: When using `registerType`, you *MUST* register a function that is a constructor
+**NOTE**: When using `registerType`, you *MUST* register a function that
+is a constructor
 
-#### Registering using an anonymous function
+#### Resolution keys
+By default, Sahara will use the name of the constructor as the resolution key.
+As a means of convenience (as you can see by most of the examples on this page),
+you can also pass the constructor to the `resolve()` function instead of
+the resolution key.
+
+If you pass a constructor to `resolve()`, it'll use `ctor.name` to deduce the
+resolution key.
+
+```javascript
+function Foo() {}
+
+//the following registrations are equivalent
+container.registerType(Foo);
+container.registerType(Foo, { key: 'Foo' });
+
+//the following resolutions are equivalent
+container.resolve(Foo); //uses Foo.name
+container.resolve('Foo');
+```
+
+When registering instances, it'll try and use `instance.constructor.name` to
+get the resolution key.
+
+```javascript
+function Foo() {}
+
+//the following registrations are equivalent
+container.registerInstance(new Foo())
+container.registerType(new Foo(), { key: 'Foo' });
+```
+
+#### Anonymous functions
 If you don't have a named function, you can also register an anonymous
-function, but you *must* provide a name for it:
+function, but you *must* provide a resolution key for it:
 
 ```javascript
 var foo = function() {};
-container.registerType(foo, 'MySpecialName');
+container.registerType(foo, { key: 'MySpecialName' });
 var fooInstance = container.resolve('MySpecialName');
+
+//with an instance
+container.registerInstance(fooInstance, { key: 'AnotherSpecialName' });
+var sameInstance = container.resolve('AnotherSpecialName');
 ```
 
 #### Cyclic dependencies
@@ -113,7 +150,7 @@ function DbConnection() {
 	this.client = mysql.connect({...});
 }
 
-container.registerType(DbConnection, null, new Lifetime.Memory());
+container.registerType(DbConnection, { lifetime: new Lifetime.Memory() });
 ```
 
 ### Property and method injection
@@ -133,11 +170,11 @@ property:
 var Inject = sahara.Inject;
 
 function Foo() {
-	this.name = 'foo';
+	this.value = 'foo';
 }
 
-container.registerType(Foo, null, null, [ new Inject.PropertyValue('name', 'bar') ]);
-console.log(container.resolve('Foo').name); //"bar"
+container.registerType(Foo, { injections: [ new Inject.PropertyValue('value', 'bar') ] });
+console.log(container.resolve(Foo).value); //"bar"
 ```
 
 Or you can have the container resolve the type. In this case, you
@@ -145,16 +182,16 @@ must specify the property's type:
 
 ```javascript
 function Foo() {
-	this.name = 'foo';
+	this.value = 'foo';
 }
 function Bar() {
 	this.toString = function() { return 'I am Bar'; };
 }
 
 container
-	.registerType(Foo, null, null, [ new Inject.Property('name', 'Bar') ])
+	.registerType(Foo, { injections: [ new Inject.Property('value', 'Bar') ] })
 	.registerType(Bar);
-console.log(container.resolve('Foo').name); //"I am Bar"
+console.log(container.resolve(Foo).value); //"I am Bar"
 ```
 
 #### Method injection
@@ -163,14 +200,14 @@ during resolution. Again, you can specify the arguments explicitly:
 
 ```javascript
 function Foo() {
-	this.name = 'foo';
-	this.setName = function(newName) {
-		this.name = newName;
+	this.value = 'foo';
+	this.setValue = function(newValue) {
+		this.value = newValue;
 	};
 }
 
-container.registerType(Foo, null, null, [ new Inject.Method('setName', [ 'bar' ]) ]);
-console.log(container.resolve('Foo').name); //"bar"
+container.registerType(Foo, { injections: [ new Inject.Method('setValue', [ 'bar' ]) ] });
+console.log(container.resolve(Foo).val;ue); //"bar"
 ```
 
 Or you can let the container resolve the method's arguments.  To
@@ -181,16 +218,16 @@ types of each parameter with a comment.
 
 ```javascript
 function Foo() {
-	this.name = 'foo';
-	this.setName = function(/** TheNewName */newName) {
-		this.name = newName;
+	this.value = 'foo';
+	this.setValue = function(/** TheNewValue */newValue) {
+		this.value = newValue;
 	};
 }
 
 container
-	.registerType(Foo, null, null, [ new Inject.Method('setName') ])
-	.registerInstance('TheNewName', 'This is the new name');
-console.log(container.resolve('Foo').name); //"This is the new name"
+	.registerType(Foo, { injections: [ new Inject.Method('setValue') ] })
+	.registerInstance('This is the new value', { key: 'TheNewValue' });
+console.log(container.resolve(Foo).value); //"This is the new value"
 ```
 
 #### Manual injection
@@ -200,15 +237,15 @@ without using the container.
 
 ```javascript
 function Foo() {
-	this.name = 'foo';
+	this.value = 'foo';
 }
 
-container.registerType(Foo, null, null, [ new Inject.PropertyValue('name', 'bar') ]);
+container.registerType(Foo, { injections: [ new Inject.PropertyValue('value', 'bar') ] });
 
 var instance = new Foo();
-console.log(instance.name); //"foo"
-container.inject('Foo', instance);
-console.log(instance.name); //"bar"
+console.log(instance.value); //"foo"
+container.inject(instance);
+console.log(instance.value); //"bar"
 ```
 
 ## In the real world
@@ -225,9 +262,9 @@ alleviate the mess that can come from trying to accomplish this.
 The setup:
 
 ```javascript
-var connectionInfo = { host: 'localhost', port: 6379 };
-var viewEngine = require('jade');
-var viewDirectory = __dirname + '/views';
+var connectionInfo = { host: 'localhost', port: 6379 },
+	viewEngine = require('jade'),
+	viewDirectory = __dirname + '/views';
 
 function DbConnection(/** DbConnectionInfo */info) {
 	this.conn = redis.createClient(info.port, info.host);
@@ -293,10 +330,10 @@ var jade = require('jade'),
 	sahara = require('sahara');
 
 var container = new sahara.Container()
-	.registerInstance('ViewDirectory', viewDirectory)
-	.registerInstance('ViewEngine', jade)
-	.registerInstance('DbConnectionInfo', connectionInfo, new sahara.Lifetime.Memory())
-	.registerType(DbConnection, new sahara.Lifetime.Memory())
+	.registerInstance(viewDirectory, { key: 'ViewDirectory' })
+	.registerInstance(jade, { key: 'ViewEngine' })
+	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: new sahara.Lifetime.Memory() })
+	.registerType(DbConnection, { lifetime: new sahara.Lifetime.Memory() })
 	.registerType(DbFacade)
 	.registerType(ViewRenderer)
 	.registerType(BlogController);
@@ -304,7 +341,7 @@ var container = new sahara.Container()
 
 And now, to instantiate your controller, you simply do this:
 ```javascript
-var controller = container.resolve('BlogController');
+var controller = container.resolve(BlogController);
 controller.showPost(1);
 ```
 

@@ -1,13 +1,13 @@
-exports.getTypeInfo = function(ctor, name) {
+exports.getTypeInfo = function(ctor, key) {
 	var data = /^function(?:[\s+](\w+))?\s*\((.*?)\)\s*\{/.exec(ctor.toString());
 	if (!data) {
 		throw new Error('Unable to parse function definition: ' + ctor.toString());
 	}
 
-	var typeName = data[1] || name,
+	var typeName = key || data[1],
 		signature = data[2].trim();
 	if (!typeName) {
-		throw new Error('"name" must be given if a named function is not');
+		throw new Error('A resolution key must be given if a named function is not');
 	}
 
 	var typeInfo = {

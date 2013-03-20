@@ -2,61 +2,80 @@ var should = require('should'),
 	Container = require('../').Container;
 
 describe('Container', function() {
-	it('should register and resolve instance', function() {
-		function Foo() {}
-		var container = new Container(),
-			instance = new Foo();
 
-		var resolved = container
-			.registerInstance('Foo', instance)
-			.resolve('Foo');
+	it('should resolve from constructor instead of key', function() {
+		function Foo() {}
+
+		var instance = new Foo(),
+			resolved = new Container()
+				.registerInstance(instance)
+				.resolve(Foo);
 
 		resolved.should.equal(instance);
 	});
 
-	it('should throw if instance not given to registerInstance()', function() {
-		(function() { new Container().registerInstance('Foo'); }).should
-			.throwError('No instance given');
+	it('should resolve from key', function() {
+		function Foo() {}
+
+		var instance = new Foo(),
+			resolved = new Container()
+				.registerInstance(instance)
+				.resolve('Foo');
+
+		resolved.should.equal(instance);
 	});
 
 	it('should throw if type is not registered', function() {
-		(function() { new Container().resolve('Foo'); }).should
-			.throwError('The type "Foo" is not registered in the container');
+		(function() { new Container().resolve('Foo'); })
+			.should
+			.throwError('Nothing with key "Foo" is registered in the container');
+	});
+
+	describe('registration from instance', function() {
+		it('should register and resolve instance', function() {
+			function Foo() {}
+			var instance = new Foo(),
+				resolved = new Container()
+					.registerInstance(instance)
+					.resolve('Foo');
+
+			resolved.should.equal(instance);
+		});
+
+		it('should register and resolve instance with specified key', function() {
+			function Foo() {}
+			var instance = new Foo(),
+				resolved = new Container()
+					.registerInstance(instance, { key: 'asdf' })
+					.resolve('asdf');
+
+			resolved.should.equal(instance);
+		});
 	});
 
 	describe('registration from function definition', function() {
-		it('should require name if named function not given', function() {
-			var foo = function() {},
-				message = '"name" must be given if a named function is not';
-			(function() { new Container().registerType(foo); }).should.throwError(message);
+		it('should require specified key if named function not given', function() {
+			(function() { new Container().registerType(function() {}); })
+				.should
+				.throwError('A resolution key must be given if a named function is not');
 		});
 
-		it('should use name from named function', function() {
+		it('should use specified key even if named function given', function() {
 			function Foo() {}
-			var container = new Container();
-			container.registerType(Foo);
+			var instance = new Container()
+				.registerType(Foo, { key: 'Lolz' })
+				.resolve('Lolz');
 
-			var instance = container.resolve('Foo');
 			instance.should.be.instanceOf(Foo);
 		});
 
-		it('should use specified name if anonymous function given', function() {
+		it('should use specified key if anonymous function given', function() {
 			var foo = function() {};
-			var container = new Container();
-			container.registerType(foo, 'Lolz');
+			var instance = new Container()
+				.registerType(foo, { key: 'Lolz' })
+				.resolve('Lolz');
 
-			var instance = container.resolve('Lolz');
 			instance.should.be.instanceOf(foo);
-		});
-
-		it('should not use specified name if named function given', function() {
-			function Foo() {}
-			var container = new Container();
-			container.registerType(Foo, 'Lolz');
-
-			container.resolve('Foo').should.be.instanceOf(Foo);
-			(function() { container.resolve('Lolz'); }).should
-				.throwError('The type "Lolz" is not registered in the container');
 		});
 
 		it('should use doc comments to get parameter types', function() {
@@ -65,13 +84,12 @@ describe('Container', function() {
 				this.bar = bar;
 			}
 
-			var container = new Container(),
-				bar = new Bar();
+			var bar = new Bar(),
+				foo = new Container()
+					.registerInstance(bar)
+					.registerType(Foo)
+					.resolve('Foo');
 
-			container.registerInstance('Bar', bar);
-			container.registerType(Foo);
-
-			var foo = container.resolve('Foo');
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.be.equal(bar);
 		});
@@ -94,5 +112,45 @@ describe('Container', function() {
 				new Container().registerType(Foo).registerType(Bar);
 			}).should.throwError('Cyclic dependency from Foo to Bar');
 		})
+	});
+
+	describe('injection', function() {
+		it('should use perform injection without resolution key', function() {
+			var injection = {
+				inject: function(instance, container) {
+					instance.injected = true;
+				}
+			};
+
+			function Foo() {}
+
+			var container = new Container().registerType(Foo, { injections: [ injection ] }),
+				instance = new Foo();
+
+			container.inject(instance);
+			instance.should.have.property('injected', true);
+		});
+
+		it('should use perform injection with resolution key', function() {
+			var injection = {
+				inject: function(instance, container) {
+					instance.injected = true;
+				}
+			};
+
+			function Foo() {}
+
+			var container = new Container().registerType(Foo, { key: 'asdf', injections: [ injection ] }),
+				instance = new Foo();
+
+			container.inject(instance, 'asdf');
+			instance.should.have.property('injected', true);
+		});
+
+		it('should throw if key is not registered', function() {
+			(function() {
+				new Container().inject({}, 'asdf');
+			}).should.throwError('Nothing with key "asdf" is registered in the container');
+		});
 	});
 });

@@ -9,7 +9,7 @@ describe('Injection', function() {
 		}
 
 		var container = new Container();
-		container.registerType(Foo, null, null, [ new Inject.PropertyValue('name', 'bar') ]);
+		container.registerType(Foo, { injections: [ new Inject.PropertyValue('name', 'bar') ] });
 		var instance = container.resolve('Foo');
 		instance.should.be.instanceOf(Foo);
 		instance.should.have.property('name', 'bar');
@@ -23,7 +23,7 @@ describe('Injection', function() {
 		function Bar() {}
 
 		var container = new Container()
-			.registerType(Foo, null, null, [ new Inject.Property('bar', 'Bar') ])
+			.registerType(Foo, { injections: [ new Inject.Property('bar', 'Bar') ] })
 			.registerType(Bar);
 
 		var instance = container.resolve('Foo');
@@ -42,7 +42,7 @@ describe('Injection', function() {
 		}
 
 		var container = new Container()
-			.registerType(Foo, null, null, [ new Inject.Method('method', [ 'bat', 'baz' ]) ]);
+			.registerType(Foo, { injections: [ new Inject.Method('method', [ 'bat', 'baz' ]) ] });
 
 		var instance = container.resolve('Foo');
 		instance.should.be.instanceOf(Foo);
@@ -63,7 +63,7 @@ describe('Injection', function() {
 		function Baz() {}
 
 		var container = new Container()
-			.registerType(Foo, null, null, [ new Inject.Method('method') ])
+			.registerType(Foo, { injections: [ new Inject.Method('method') ] })
 			.registerType(Bar)
 			.registerType(Baz);
 
@@ -77,7 +77,7 @@ describe('Injection', function() {
 		function Foo() {}
 		(function() {
 			new Container()
-				.registerType(Foo, null, null, [ new Inject.Method('asdf') ])
+				.registerType(Foo, { injections: [ new Inject.Method('asdf') ] })
 				.resolve('Foo');
 		}).should.throwError('Cannot perform method injection because the object does not have a method "asdf"');
 	});
