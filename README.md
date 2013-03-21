@@ -7,7 +7,7 @@ constructor, property and method injection. It even does some fancy type parsing
 of function signatures, if you're into that kind of thing.
 
 ## Installation
-Install (eventually) using [NPM](https://github.com/isaacs/npm): `npm install sahara`
+Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
 ## Usage
 ### Registering an instance
