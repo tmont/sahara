@@ -25,6 +25,17 @@ describe('Container', function() {
 		resolved.should.equal(instance);
 	});
 
+	it('should allow options argument to be the key instead of an object', function() {
+		function Foo() {}
+
+		var instance = new Foo(),
+			resolved = new Container()
+				.registerInstance(instance, 'asdf')
+				.resolve('asdf');
+
+		resolved.should.equal(instance);
+	});
+
 	it('should throw if type is not registered', function() {
 		(function() { new Container().resolve('Foo'); })
 			.should

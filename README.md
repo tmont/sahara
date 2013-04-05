@@ -80,12 +80,18 @@ the resolution key.
 If you pass a constructor to `resolve()`, it'll use `ctor.name` to deduce the
 resolution key.
 
+Otherwise, you need to pass in a `key` property in the `options` argument
+to the `register*()` methods. Alternatively, as a means of convenience,
+you can also just pass a straight-up string as the second argument in
+lieu of the options object, and it will be used as the key.
+
 ```javascript
 function Foo() {}
 
 //the following registrations are equivalent
 container.registerType(Foo);
 container.registerType(Foo, { key: 'Foo' });
+container.registerType(Foo, 'Foo');
 
 //the following resolutions are equivalent
 container.resolve(Foo); //uses Foo.name
@@ -98,9 +104,12 @@ get the resolution key.
 ```javascript
 function Foo() {}
 
+var instance = new Foo();
+
 //the following registrations are equivalent
-container.registerInstance(new Foo())
-container.registerType(new Foo(), { key: 'Foo' });
+container.registerInstance(instance)
+container.registerType(instance, { key: 'Foo' });
+container.registerType(instance, 'Foo');
 ```
 
 #### Anonymous functions

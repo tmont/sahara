@@ -62,7 +62,7 @@ Container.prototype = {
 	 * Registers a type from a constructor
 	 *
 	 * @param {Function} ctor The constructor of the type to register
-	 * @param {Object} [options]
+	 * @param {Object|String} [options]
 	 * @param {String} [options.key] The resolution key
 	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
@@ -71,6 +71,9 @@ Container.prototype = {
 	 */
 	registerType: function(ctor, options) {
 		options = options || {};
+		if (typeof(options) === 'string') {
+			options = { key: options };
+		}
 		var typeInfo = util.getTypeInfo(ctor, options.key),
 			typeName = typeInfo.name;
 
@@ -97,7 +100,7 @@ Container.prototype = {
 	 * Registers a specific instance of a type
 	 *
 	 * @param {Object} instance The instance to store
-	 * @param {Object} [options]
+	 * @param {Object|String} [options]
 	 * @param {String} [options.key] The resolution key; defaults to instance.constructor.name
 	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
@@ -106,6 +109,9 @@ Container.prototype = {
 	 */
 	registerInstance: function(instance, options) {
 		options = options || {};
+		if (typeof(options) === 'string') {
+			options = { key: options };
+		}
 		var key = options.key || (instance && instance.constructor && instance.constructor.name);
 		this.registrations[key] = new InstanceRegistration(
 			key,
@@ -122,7 +128,7 @@ Container.prototype = {
 	 *
 	 * @param {Function} factory A function that creates the object; this function
 	 * should take one parameter, the container
-	 * @param {Object} options
+	 * @param {Object|String} options
 	 * @param {String} options.key The resolution key
 	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
@@ -131,6 +137,9 @@ Container.prototype = {
 	 */
 	registerFactory: function(factory, options) {
 		options = options || {};
+		if (typeof(options) === 'string') {
+			options = { key: options };
+		}
 		if (!options.key) {
 			throw new Error('"options.key" must be passed to registerFactory()');
 		}
