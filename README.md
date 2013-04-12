@@ -20,7 +20,7 @@ var Container = require('sahara').Container,
     container = new Container();
 
 var myObject = { oh: 'hai mark' };
-container.registerInstance(myObject, { key: 'MyObject' });
+container.registerInstance(myObject, 'MyObject');
 var instance = container.resolve('MyObject');
 console.log(myObject === instance); //true, they are literally the same instance
 ```
@@ -61,7 +61,7 @@ function Bar(/** Foo */foo) { this.foo = foo; }
 function Baz(/** Bar */bar) { this.bar = bar; }
 
 container
-	.registerInstance('Foo', new Foo('oh hai mark'))
+	.registerInstance(new Foo('oh hai mark'))
 	.registerType(Bar)
 	.registerType(Baz)
 	.resolve(Baz)
@@ -108,8 +108,8 @@ var instance = new Foo();
 
 //the following registrations are equivalent
 container.registerInstance(instance)
-container.registerType(instance, { key: 'Foo' });
-container.registerType(instance, 'Foo');
+container.registerInstance(instance, { key: 'Foo' });
+container.registerInstance(instance, 'Foo');
 ```
 
 #### Anonymous functions
@@ -118,11 +118,11 @@ function, but you *must* provide a resolution key for it:
 
 ```javascript
 var foo = function() {};
-container.registerType(foo, { key: 'MySpecialName' });
+container.registerType(foo, 'MySpecialName');
 var fooInstance = container.resolve('MySpecialName');
 
 //with an instance
-container.registerInstance(fooInstance, { key: 'AnotherSpecialName' });
+container.registerInstance(fooInstance, 'AnotherSpecialName');
 var sameInstance = container.resolve('AnotherSpecialName');
 ```
 
@@ -141,7 +141,7 @@ function Foo() {}
 
 container.registerFactory(function(container) {
 	return new Foo();
-}, { key: 'MyKey' });
+}, 'MyKey');
 
 container.resolve('MyKey');
 ```
@@ -245,9 +245,9 @@ console.log(container.resolve(Foo).value); //"bar"
 ```
 
 Or you can let the container resolve the method's arguments.  To
-accomplish this, simply omit the optional array of arguments to the
-`Method` constructor.Note that this uses the same procedure as
-`Container.prototype.registerType`, so you'll need to specify the
+accomplish this, simply omit the optional array of arguments to 
+`inject.method()`. Note that this uses the same procedure as
+`container.registerType()`, so you'll need to specify the
 types of each parameter with a comment.
 
 ```javascript
@@ -260,7 +260,7 @@ function Foo() {
 
 container
 	.registerType(Foo, { injections: [ inject.method('setValue') ] })
-	.registerInstance('This is the new value', { key: 'TheNewValue' });
+	.registerInstance('This is the new value', 'TheNewValue');
 console.log(container.resolve(Foo).value); //"This is the new value"
 ```
 
@@ -363,8 +363,8 @@ Now, configure the container:
 var sahara = require('sahara');
 
 var container = new sahara.Container()
-	.registerInstance(viewDirectory, { key: 'ViewDirectory' })
-	.registerInstance(viewEngine, { key: 'ViewEngine' })
+	.registerInstance(viewDirectory, 'ViewDirectory')
+	.registerInstance(viewEngine, 'ViewEngine')
 	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: sahara.lifetime.memory() })
 	.registerType(DbConnection, { lifetime: sahara.lifetime.memory() })
 	.registerType(DbFacade)
