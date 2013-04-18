@@ -1,5 +1,6 @@
 var DependencyGraph = require('dep-graph'),
 	lifetimes = require('./lifetime'),
+	async = require('async'),
 	util = require('./util');
 
 function Registration(name, lifetime, injections) {
@@ -157,35 +158,72 @@ Container.prototype = {
 	 * Resolves a type to an instance
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
-	 * @return {*}
+	 * @param {Function} [callback]
+	 * @return {*} Nothing if callback was specified, otherwise the resolved object
 	 */
-	resolve: function(key) {
+	resolve: function(key, callback) {
 		if (typeof(key) === 'function') {
 			key = key.name;
 		}
 
 		var registration = this.registrations[key];
 		if (!registration) {
-			throw new Error('Nothing with key "' + key + '" is registered in the container');
+			var err = new Error('Nothing with key "' + key + '" is registered in the container');
+			if (callback) {
+				callback(err);
+				return;
+			}
+
+			throw err;
 		}
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
+			if (callback) {
+				callback(null, existing);
+				return;
+			}
+
 			return existing;
 		}
 
 		var instance;
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
-		} else if (registration instanceof FactoryRegistration) {
-			instance = registration.factory(this);
-		} else {
+		} else if (registration instanceof TypeRegistration) {
 			instance = this.builder.newInstance(registration.typeInfo);
 		}
 
-		this.inject(instance, key);
-		registration.lifetime.store(instance);
-		return instance;
+		var self = this;
+		if (registration instanceof FactoryRegistration) {
+			//this is really the only part that's asynchronous
+			if (callback) {
+				registration.factory(this, function(err, result) {
+					if (err) {
+						callback(err);
+						return;
+					}
+
+					self.inject(result, key, function(err) {
+						callback(err, result);
+					});
+				});
+			} else {
+				instance = registration.factory(this);
+				this.inject(instance, key);
+				return instance;
+			}
+		} else {
+			//already have instance, so just perform injection
+			if (callback) {
+				this.inject(instance, key, function(err) {
+					callback(err, instance);
+				});
+			} else {
+				this.inject(instance, key);
+				return instance;
+			}
+		}
 	},
 
 	/**
@@ -193,17 +231,35 @@ Container.prototype = {
 	 *
 	 * @param {*} instance The instance to perform injection on
 	 * @param {String} key The resolution key; defaults to instance.constructor.name
+	 * @param {Function} [callback]
 	 */
-	inject: function(instance, key) {
+	inject: function(instance, key, callback) {
 		key = key || (instance && instance.constructor && instance.constructor.name);
 		var registration = this.registrations[key];
 		if (!registration) {
-			throw new Error('Nothing with key "' + key + '" is registered in the container');
+			var err = new Error('Nothing with key "' + key + '" is registered in the container');
+			if (callback) {
+				callback(err);
+				return;
+			}
+
+			throw err;
 		}
 
-		registration.injections.forEach(function(injection) {
-			injection.inject(instance, this);
-		}.bind(this));
+		var self = this;
+		if (!callback) {
+			registration.injections.forEach(function(injection) {
+				injection.inject(instance, self);
+			});
+		} else {
+			async.forEach(registration.injections, function(injection, next) {
+				injection.inject(instance, self, function(err) {
+					process.nextTick(function() {
+						next(err);
+					});
+				});
+			}, callback);
+		}
 	}
 };
 

@@ -14,7 +14,8 @@
 	},
 
 	"dependencies": {
-		"dep-graph": "1.1.0"
+		"dep-graph": "1.1.0",
+		"async": "0.2.7"
 	},
 
 	"devDependencies": {
