@@ -1,5 +1,6 @@
 # Sahara
 [![Build Status](https://travis-ci.org/tmont/sahara.png)](https://travis-ci.org/tmont/sahara)
+[![NPM version](https://badge.fury.io/js/sahara.png)](http://badge.fury.io/js/sahara)
 
 Sahara is a simple little inversion of control container. Specifically, it
 handles dependency injection. Even more specifically, it handles
