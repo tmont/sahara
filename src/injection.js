@@ -75,6 +75,7 @@ MethodInjection.prototype = {
 					}
 
 					object[name].apply(object, args);
+					callback();
 				});
 			} else {
 				args = args.map(function(argInfo) {

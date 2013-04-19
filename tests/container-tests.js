@@ -156,7 +156,7 @@ describe('Container', function() {
 	});
 
 	describe('injection', function() {
-		it('should use perform injection without resolution key', function() {
+		it('should perform injection without resolution key', function() {
 			var injection = {
 				inject: function(instance, container) {
 					instance.injected = true;
@@ -172,7 +172,7 @@ describe('Container', function() {
 			instance.should.have.property('injected', true);
 		});
 
-		it('should use perform injection with resolution key', function() {
+		it('should perform injection with resolution key', function() {
 			var injection = {
 				inject: function(instance, container) {
 					instance.injected = true;
@@ -192,6 +192,106 @@ describe('Container', function() {
 			(function() {
 				new Container().inject({}, 'asdf');
 			}).should.throwError('Nothing with key "asdf" is registered in the container');
+		});
+	});
+
+	describe('async', function() {
+		describe('registration from instance', function() {
+			it('should register and resolve instance', function(done) {
+				function Foo() {}
+
+				var instance = new Foo(),
+					container = new Container().registerInstance(instance);
+
+				container.resolve(Foo, function(err, resolved) {
+					should.not.exist(err);
+					resolved.should.equal(instance);
+					done();
+				});
+			});
+
+			it('should register and resolve instance with specified key', function(done) {
+				function Foo() {}
+
+				var instance = new Foo(),
+					container = new Container().registerInstance(instance, 'asdf');
+
+				container.resolve('asdf', function(err, resolved) {
+					should.not.exist(err);
+					resolved.should.equal(instance);
+					done();
+				});
+			});
+		});
+
+		describe('registration from factory', function() {
+			it('should register and resolve factory', function(done) {
+				var instance = {},
+					container = new Container()
+						.registerFactory(function(container, callback) {
+							callback(null, instance);
+						}, { key: 'poopoo' });
+
+				container.resolve('poopoo', function(err, resolved) {
+					should.not.exist(err);
+					resolved.should.equal(instance);
+					done();
+				});
+			});
+
+			it('should raise error during resolution', function(done) {
+				var instance = {},
+					container = new Container()
+						.registerFactory(function(container, callback) {
+							callback('fail');
+						}, { key: 'poopoo' });
+
+				container.resolve('poopoo', function(err, resolved) {
+					err.should.equal('fail');
+					should.not.exist(resolved);
+					done();
+				});
+			});
+		});
+
+		describe('injection', function() {
+			it('should perform injection', function(done) {
+				var injection = {
+					inject: function(instance, container, callback) {
+						instance.injected = true;
+						callback();
+					}
+				};
+
+				function Foo() { }
+
+				var container = new Container().registerType(Foo, { injections: [ injection ] }),
+					instance = new Foo();
+
+				container.inject(instance, 'Foo', function(err) {
+					should.not.exist(err);
+					instance.should.have.property('injected', true);
+					done();
+				});
+			});
+
+			it('should raise error', function(done) {
+				var injection = {
+					inject: function(instance, container, callback) {
+						callback('fail');
+					}
+				};
+
+				function Foo() {}
+
+				var container = new Container().registerType(Foo, { injections: [ injection ] }),
+					instance = new Foo();
+
+				container.inject(instance, 'Foo', function(err) {
+					err.should.equal('fail');
+					done();
+				});
+			});
 		});
 	});
 });

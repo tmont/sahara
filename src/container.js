@@ -50,7 +50,11 @@ ObjectBuilder.prototype = {
 		var self = this;
 		if (callback) {
 			async.map(params, function(typeData, next) {
-				self.dependencyResolver(typeData.type, next);
+				self.dependencyResolver(typeData.type, function(err, param) {
+					process.nextTick(function() {
+						next(err, param);
+					});
+				});
 			}, function(err, args) {
 				if (err) {
 					callback(err);
@@ -205,39 +209,48 @@ Container.prototype = {
 			return existing;
 		}
 
-		var instance;
+		var instance, self = this;
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
-		} else if (registration instanceof TypeRegistration) {
-			instance = this.builder.newInstance(registration.typeInfo);
-		}
-
-		var self = this;
-		if (registration instanceof FactoryRegistration) {
-			//this is really the only part that's asynchronous
-			if (callback) {
-				registration.factory(this, function(err, result) {
-					if (err) {
-						callback(err);
-						return;
-					}
-
-					self.inject(result, key, function(err) {
-						callback(err, result);
-					});
-				});
-			} else {
-				instance = registration.factory(this);
-				this.inject(instance, key);
-				return instance;
-			}
-		} else {
-			//already have instance, so just perform injection
 			if (callback) {
 				this.inject(instance, key, function(err) {
 					callback(err, instance);
 				});
 			} else {
+				this.inject(instance, key);
+				return instance;
+			}
+		} else if (registration instanceof TypeRegistration) {
+			if (callback) {
+				this.builder.newInstance(registration.typeInfo, function(err, instance) {
+					if (err) {
+						callback(err);
+						return;
+					}
+
+					self.inject(instance, key, function(err) {
+						callback(err, instance);
+					});
+				});
+			} else {
+				instance = this.builder.newInstance(registration.typeInfo);
+				this.inject(instance, key);
+				return instance;
+			}
+		} else if (registration instanceof FactoryRegistration) {
+			if (callback) {
+				registration.factory(this, function(err, instance) {
+					if (err) {
+						callback(err);
+						return;
+					}
+
+					self.inject(instance, key, function(err) {
+						callback(err, instance);
+					});
+				});
+			} else {
+				instance = registration.factory(this);
 				this.inject(instance, key);
 				return instance;
 			}
