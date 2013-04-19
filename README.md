@@ -146,6 +146,42 @@ container.registerFactory(function(container) {
 container.resolve('MyKey');
 ```
 
+### Asynchronous resolution
+All examples given are synchronous. However, if you need to resolve something
+asynchronously, simply provide a callback as the second parameter to
+`container.resolve()` if your dependencies/factories are asynchronous:
+
+```javascript
+function createThingAsync(container, callback) {
+	setTimeout(function() {
+		callback(null, {});
+	});
+}
+
+var container = new Container()
+	.registerFactory(createThingAsync, 'Thing');
+
+container.resolve('Thing', function(err, thing) {
+	if (err) {
+		console.error(err);
+		return;
+	}
+
+	//do something with thing
+});
+```
+
+In fact, even if your factory/dependency isn't asynchronous, simply providing
+a callback argument will make `resolve()` act asynchronously.
+
+```javascript
+container.registerInstance({}, 'Foo');
+var instance = container.resolve('Foo');
+container.resolve('Foo', function(err, asyncInstance) {
+	console.log(instance === asyncInstance); //true
+});
+```
+
 ### Cyclic dependencies
 ...are bad.
 
