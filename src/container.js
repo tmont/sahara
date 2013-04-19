@@ -29,9 +29,15 @@ function ObjectBuilder(dependencyResolver) {
 }
 
 ObjectBuilder.prototype = {
-	newInstance: function(typeInfo) {
+	newInstance: function(typeInfo, callback) {
 		var params = typeInfo.args,
 			ctor = typeInfo.ctor;
+
+		function invokeCtor(args) {
+			var instance = Object.create(ctor.prototype);
+			ctor.apply(instance, args);
+			return instance;
+		}
 
 		params.sort(function(a, b) {
 			if (a.position === b.position) {
@@ -41,14 +47,26 @@ ObjectBuilder.prototype = {
 			return a.position < b.position ? -1 : 1;
 		});
 
-		var args = params.map(function(typeData) {
-			return this.dependencyResolver(typeData.type);
-		}.bind(this));
+		var self = this;
+		if (callback) {
+			async.map(params, function(typeData, next) {
+				self.dependencyResolver(typeData.type, next);
+			}, function(err, args) {
+				if (err) {
+					callback(err);
+					return;
+				}
 
-		//dynamically invoke the constructor
-		var instance = Object.create(ctor.prototype);
-		ctor.apply(instance, args);
-		return instance;
+				callback(null, invokeCtor(args));
+			});
+		} else {
+			var args = params.map(function(typeData) {
+				return this.dependencyResolver(typeData.type);
+			}.bind(this));
+
+			//dynamically invoke the constructor
+			return invokeCtor(args);
+		}
 	}
 };
 
