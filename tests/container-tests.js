@@ -135,6 +135,27 @@ describe('Container', function() {
 			foo.bar.should.be.equal(bar);
 		});
 
+		it('should allow copious whitespace in function definition', function() {
+			function Bar() {}
+			function Foo(
+				/** Bar */bar,
+				/** Bar */bar2
+			) {
+				this.bar = bar;
+				this.bar2 = bar2;
+			}
+
+			var bar = new Bar(),
+				foo = new Container()
+					.registerInstance(bar)
+					.registerType(Foo)
+					.resolve('Foo');
+
+			foo.should.be.instanceOf(Foo);
+			foo.bar.should.equal(bar);
+			foo.bar2.should.equal(bar);
+		});
+
 		it('should throw if signature does not contain type info', function() {
 			function Foo(bar) {
 				this.bar = bar;

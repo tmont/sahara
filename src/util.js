@@ -1,5 +1,5 @@
 exports.getTypeInfo = function(ctor, key, ignoreSignature) {
-	var data = /^function(?:[\s+](\w+))?\s*\((.*?)\)\s*\{/.exec(ctor.toString());
+	var data = /^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/.exec(ctor.toString());
 	if (!data) {
 		throw new Error('Unable to parse function definition: ' + ctor.toString());
 	}
