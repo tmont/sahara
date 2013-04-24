@@ -196,6 +196,23 @@ describe('Container', function() {
 	});
 
 	describe('async', function() {
+		it('should resolve type with dependencies', function(done) {
+			function Foo(/** Bar */bar) { this.bar = bar; }
+			function Bar() {}
+
+			var container = new Container()
+				.registerType(Foo)
+				.registerType(Bar);
+
+			container.resolve(Foo, function(err, resolved) {
+				should.not.exist(err);
+				resolved.should.be.instanceOf(Foo);
+				resolved.should.have.property('bar');
+				resolved.bar.should.be.instanceOf(Bar);
+				done();
+			});
+		});
+
 		describe('registration from instance', function() {
 			it('should register and resolve instance', function(done) {
 				function Foo() {}
