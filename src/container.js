@@ -214,10 +214,12 @@ Container.prototype = {
 			instance = registration.instance;
 			if (callback) {
 				this.inject(instance, key, function(err) {
+					registration.lifetime.store(instance);
 					callback(err, instance);
 				});
 			} else {
 				this.inject(instance, key);
+				registration.lifetime.store(instance);
 				return instance;
 			}
 		} else if (registration instanceof TypeRegistration) {
@@ -229,12 +231,14 @@ Container.prototype = {
 					}
 
 					self.inject(instance, key, function(err) {
+						registration.lifetime.store(instance);
 						callback(err, instance);
 					});
 				});
 			} else {
 				instance = this.builder.newInstance(registration.typeInfo);
 				this.inject(instance, key);
+				registration.lifetime.store(instance);
 				return instance;
 			}
 		} else if (registration instanceof FactoryRegistration) {
@@ -246,12 +250,14 @@ Container.prototype = {
 					}
 
 					self.inject(instance, key, function(err) {
+						registration.lifetime.store(instance);
 						callback(err, instance);
 					});
 				});
 			} else {
 				instance = registration.factory(this);
 				this.inject(instance, key);
+				registration.lifetime.store(instance);
 				return instance;
 			}
 		}

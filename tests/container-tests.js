@@ -62,6 +62,26 @@ describe('Container', function() {
 
 			resolved.should.equal(instance);
 		});
+
+		it('should use lifetime', function() {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.equal('foo');
+				}
+			};
+
+			new Container()
+				.registerInstance('foo', { key: 'foo', lifetime: lifetime })
+				.resolve('foo');
+
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		});
 	});
 
 	describe('registration from factory', function() {
@@ -91,6 +111,26 @@ describe('Container', function() {
 					.resolve('poopoo');
 
 			resolved.should.equal(instance);
+		});
+
+		it('should use lifetime', function() {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.equal('foo');
+				}
+			};
+
+			new Container()
+				.registerFactory(function() { return 'foo'; }, { key: 'foo', lifetime: lifetime })
+				.resolve('foo');
+
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
 		});
 	});
 
@@ -173,7 +213,29 @@ describe('Container', function() {
 			(function() {
 				new Container().registerType(Foo).registerType(Bar);
 			}).should.throwError('Cyclic dependency from Foo to Bar');
-		})
+		});
+
+		it('should use lifetime', function() {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.be.instanceOf(Foo);
+				}
+			};
+
+			function Foo() {}
+
+			new Container()
+				.registerType(Foo, { key: 'foo', lifetime: lifetime })
+				.resolve('foo');
+
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		});
 	});
 
 	describe('injection', function() {
@@ -234,6 +296,30 @@ describe('Container', function() {
 			});
 		});
 
+		it('should use lifetime when resolving type', function(done) {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.be.instanceOf(Foo);
+				}
+			};
+
+			function Foo() {}
+
+			new Container()
+				.registerType(Foo, { key: 'foo', lifetime: lifetime })
+				.resolve('foo', function(err) {
+					should.not.exist(err);
+					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+					storeCalled.should.equal(true, 'lifetime.store() should have been called');
+					done();
+				});
+		});
+
 		describe('registration from instance', function() {
 			it('should register and resolve instance', function(done) {
 				function Foo() {}
@@ -260,6 +346,28 @@ describe('Container', function() {
 					done();
 				});
 			});
+		});
+
+		it('should use lifetime when resolving instance', function(done) {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.equal('foo');
+				}
+			};
+
+			new Container()
+				.registerInstance('foo', { key: 'foo', lifetime: lifetime })
+				.resolve('foo', function(err) {
+					should.not.exist(err);
+					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+					storeCalled.should.equal(true, 'lifetime.store() should have been called');
+					done();
+				});
 		});
 
 		describe('registration from factory', function() {
@@ -290,6 +398,31 @@ describe('Container', function() {
 					done();
 				});
 			});
+		});
+
+		it('should use lifetime when resolving factory', function(done) {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				fetch: function() {
+					fetchCalled = true;
+				},
+				store: function(value) {
+					storeCalled = true;
+					value.should.equal('foo');
+				}
+			};
+
+			var factory = function(container, callback) {
+				callback(null, 'foo');
+			};
+			new Container()
+				.registerFactory(factory, { key: 'foo', lifetime: lifetime })
+				.resolve('foo', function(err) {
+					should.not.exist(err);
+					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+					storeCalled.should.equal(true, 'lifetime.store() should have been called');
+					done();
+				});
 		});
 
 		describe('injection', function() {
