@@ -14,15 +14,15 @@ Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 ### Registering an instance
 Sahara is simply a container for objects and object dependencies. In the simplest
 case, you shove an object into it using `registerInstance()` and retrieve it
-using `resolve()`:
+using `resolveSync()` (or, asynchronously, `resolve()`):
 
 ```javascript
 var Container = require('sahara').Container,
     container = new Container();
 
-var myObject = { oh: 'hai mark' };
+var myObject = { oh: 'hi mark' };
 container.registerInstance(myObject, 'MyObject');
-var instance = container.resolve('MyObject');
+var instance = container.resolveSync('MyObject');
 console.log(myObject === instance); //true, they are literally the same instance
 ```
 
@@ -37,7 +37,7 @@ function AnotherObject(/** MyObject */theObject) {
 
 container.registerType(AnotherObject);
 
-var anotherObject = container.resolve(AnotherObject);
+var anotherObject = container.resolveSync(AnotherObject);
 console.log(anotherObject.obj); // { oh: 'hai mark' }
 ```
 
@@ -62,23 +62,23 @@ function Bar(/** Foo */foo) { this.foo = foo; }
 function Baz(/** Bar */bar) { this.bar = bar; }
 
 container
-	.registerInstance(new Foo('oh hai mark'))
+	.registerInstance(new Foo('oh hi mark'))
 	.registerType(Bar)
 	.registerType(Baz)
-	.resolve(Baz)
-	.bar.foo.message; //"oh hai mark"
+	.resolveSync(Baz)
+	.bar.foo.message; //"oh hi mark"
 ```
 
 **NOTE**: When using `registerType`, you *MUST* register a function that
-is a constructor
+is a constructor.
 
 #### Named functions
 By default, Sahara will use the name of the constructor as the resolution key.
 As a means of convenience (as you can see by most of the examples on this page),
-you can also pass the constructor to the `resolve()` function instead of
+you can also pass the constructor to the `resolveSync()` function instead of
 the resolution key.
 
-If you pass a constructor to `resolve()`, it'll use `ctor.name` to deduce the
+If you pass a constructor to `resolveSync()`, it'll use `ctor.name` to deduce the
 resolution key.
 
 Otherwise, you need to pass in a `key` property in the `options` argument
@@ -95,8 +95,8 @@ container.registerType(Foo, { key: 'Foo' });
 container.registerType(Foo, 'Foo');
 
 //the following resolutions are equivalent
-container.resolve(Foo); //uses Foo.name
-container.resolve('Foo');
+container.resolveSync(Foo); //uses Foo.name
+container.resolveSync('Foo');
 ```
 
 When registering instances, it'll try and use `instance.constructor.name` to
@@ -120,11 +120,11 @@ function, but you *must* provide a resolution key for it:
 ```javascript
 var foo = function() {};
 container.registerType(foo, 'MySpecialName');
-var fooInstance = container.resolve('MySpecialName');
+var fooInstance = container.resolveSync('MySpecialName');
 
 //with an instance
 container.registerInstance(fooInstance, 'AnotherSpecialName');
-var sameInstance = container.resolve('AnotherSpecialName');
+var sameInstance = container.resolveSync('AnotherSpecialName');
 ```
 
 ### Registering a factory
@@ -155,27 +155,26 @@ asynchronous, so bear that in mind.
 
 This is most relevant for `registerFactory()`, because you either have to be
 very careful, or make sure your factory function can handle both async
-and synchronous codepaths.
+and synchronous code paths.
 
 Here is an asynchronous example:
 ```javascript
 function createThingAsync(container, callback) {
 	setTimeout(function() {
 		callback(null, {});
-	});
+	}, 1000);
 }
 
-var container = new Container()
-	.registerFactory(createThingAsync, 'Thing');
+new Container()
+	.registerFactory(createThingAsync, 'Thing')
+	.resolve('Thing', function(err, thing) {
+		if (err) {
+			console.error(err);
+			return;
+		}
 
-container.resolve('Thing', function(err, thing) {
-	if (err) {
-		console.error(err);
-		return;
-	}
-
-	//do something with thing
-});
+		//do something with thing
+	});
 ```
 
 But if you try to resolve `Thing` synchronously, nothing will be returned.
@@ -186,10 +185,12 @@ your factory function:
 function createThingMaybeAsync(container, callback) {
 	var theThing = { oh: 'hi mark' };
 	if (callback) {
+		//asynchronous code path
 		callback(null, theThing);
 		return;
 	}
 
+	//synchronous code path
 	return theThing;
 }
 ```
@@ -259,7 +260,7 @@ function Foo() {
 }
 
 container.registerType(Foo, { injections: [ inject.propertyValue('value', 'bar') ] });
-console.log(container.resolve(Foo).value); //"bar"
+console.log(container.resolveSync(Foo).value); //"bar"
 ```
 
 Or you can have the container resolve the type. In this case, you
@@ -276,7 +277,7 @@ function Bar() {
 container
 	.registerType(Foo, { injections: [ inject.property('value', 'Bar') ] })
 	.registerType(Bar);
-console.log(container.resolve(Foo).value); //"I am Bar"
+console.log(container.resolveSync(Foo).value); //"I am Bar"
 ```
 
 #### Method injection
@@ -292,7 +293,7 @@ function Foo() {
 }
 
 container.registerType(Foo, { injections: [ inject.method('setValue', [ 'bar' ]) ] });
-console.log(container.resolve(Foo).value); //"bar"
+console.log(container.resolveSync(Foo).value); //"bar"
 ```
 
 Or you can let the container resolve the method's arguments.  To
@@ -312,7 +313,7 @@ function Foo() {
 container
 	.registerType(Foo, { injections: [ inject.method('setValue') ] })
 	.registerInstance('This is the new value', 'TheNewValue');
-console.log(container.resolve(Foo).value); //"This is the new value"
+console.log(container.resolveSync(Foo).value); //"This is the new value"
 ```
 
 #### Manual injection
@@ -329,9 +330,22 @@ container.registerType(Foo, { injections: [ inject.propertyValue('value', 'bar')
 
 var instance = new Foo();
 console.log(instance.value); //"foo"
-container.inject(instance);
+container.injectSync(instance);
 console.log(instance.value); //"bar"
+
+//specify the key explicitly
+container.injectSync(instance, 'Foo');
 ```
+
+The async way:
+```javascript
+container.inject(instance, 'Foo', function(err) {
+	if (err) {
+		console.error(err);
+	}
+
+	//injection completed successfully
+});
 
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects
@@ -425,7 +439,7 @@ var container = new sahara.Container()
 
 And now, to instantiate your controller, you simply do this:
 ```javascript
-var controller = container.resolve(BlogController);
+var controller = container.resolveSync(BlogController);
 controller.showPost(1);
 ```
 
