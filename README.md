@@ -53,7 +53,7 @@ arguments. So these are equivalent:
 var options = {
 	key: 'foo',
 	lifetime: lifetime.memory(),
-	injections: [ inject.property('foo', 'bar'), inject.method('doStuff', [ 'arg1', arg2' ]) ]
+	injections: [ inject.property('foo', 'bar'), inject.method('doStuff', [ 'arg1', 'arg2' ]) ]
 };
 
 container.registerInstance({}, options);
