@@ -12,7 +12,7 @@ Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
 ## Usage
 ### API
-All of these are explained in detail below.
+All of these are explained in mind-numbing detail below.
 
 ```javascript
 sahara.Container = function() {};
