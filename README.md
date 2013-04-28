@@ -24,13 +24,13 @@ Container.prototype = {
 	registerInstance: function(instance[, key, lifetime, injection, injection...]) {},
 
 	registerFactory: (factory[, options]) {},
-    registerFactory: (factory[, key, lifetime, injection, injection...]) {},
+	registerFactory: (factory[, key, lifetime, injection, injection...]) {},
 
-    resolve: function(key, callback) {}
-    resolveSync: function(key) {},
+	resolve: function(key, callback) {}
+	resolveSync: function(key) {},
 
-    inject: function(instance, key, callback) {}
-    injectSync: function(instance[, key]) {}
+	inject: function(instance, key, callback) {}
+	injectSync: function(instance[, key]) {}
 };
 
 sahara.inject = {
@@ -67,7 +67,7 @@ using `resolveSync()` (or, asynchronously, `resolve()`):
 
 ```javascript
 var Container = require('sahara').Container,
-    container = new Container();
+	container = new Container();
 
 var myObject = { oh: 'hi mark' };
 container.registerInstance(myObject, 'MyObject');
