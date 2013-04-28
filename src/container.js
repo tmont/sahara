@@ -45,23 +45,44 @@ function Container() {
 	);
 }
 
+function resolveSignatureToOptions(args) {
+	args = [].slice.call(args, 1);
+
+	if (args.length === 0) {
+		return {};
+	}
+
+	//just a regular options object (making sure to check for null!)
+	if (args[0] && typeof(args[0]) === 'object') {
+		return args[0];
+	}
+
+	var options = {};
+	if (typeof(args[0]) === 'string') {
+		options.key = args[0];
+	}
+	if (args[1]) {
+		options.lifetime = args[1];
+	}
+
+	options.injections = args.slice(2);
+
+	return options;
+}
+
 Container.prototype = {
 	/**
 	 * Registers a type from a constructor
 	 *
 	 * @param {Function} ctor The constructor of the type to register
-	 * @param {Object|String} [options]
-	 * @param {String} [options.key] The resolution key
-	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
+	 * @param {String} [key] The resolution key
+	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
-	 * @param {Object[]} [options.injections] Array of injections to perform upon resolution
+	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerType: function(ctor, options) {
-		options = options || {};
-		if (typeof(options) === 'string') {
-			options = { key: options };
-		}
+	registerType: function(ctor, key, lifetime, injections) {
+		var options = resolveSignatureToOptions(arguments);
 		var typeInfo = util.getTypeInfo(ctor, options.key),
 			typeName = typeInfo.name;
 
@@ -88,21 +109,17 @@ Container.prototype = {
 	 * Registers a specific instance of a type
 	 *
 	 * @param {Object} instance The instance to store
-	 * @param {Object|String} [options]
-	 * @param {String} [options.key] The resolution key; defaults to instance.constructor.name
-	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
+	 * @param {String} [key] The resolution key
+	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
-	 * @param {Object[]} [options.injections] Array of injections to perform upon resolution
+	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerInstance: function(instance, options) {
-		options = options || {};
-		if (typeof(options) === 'string') {
-			options = { key: options };
-		}
-		var key = options.key || (instance && instance.constructor && instance.constructor.name);
-		this.registrations[key] = new InstanceRegistration(
-			key,
+	registerInstance: function(instance, key, lifetime, injections) {
+		var options = resolveSignatureToOptions(arguments);
+		options.key = options.key || (instance && instance.constructor && instance.constructor.name);
+		this.registrations[options.key] = new InstanceRegistration(
+			options.key,
 			options.lifetime,
 			options.injections,
 			instance
@@ -116,18 +133,14 @@ Container.prototype = {
 	 *
 	 * @param {Function} factory A function that creates the object; this function
 	 * should take one parameter, the container
-	 * @param {Object|String} options
-	 * @param {String} options.key The resolution key
-	 * @param {Object} [options.lifetime] The lifetime manager of this object, defaults
+	 * @param {String} [key] The resolution key
+	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
 	 * to sahara.Lifetime.Transient
-	 * @param {Object[]} [options.injections] Array of injections to perform upon resolution
+	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerFactory: function(factory, options) {
-		options = options || {};
-		if (typeof(options) === 'string') {
-			options = { key: options };
-		}
+	registerFactory: function(factory, key, lifetime, injections) {
+		var options = resolveSignatureToOptions(arguments);
 		if (!options.key) {
 			throw new Error('"options.key" must be passed to registerFactory()');
 		}
@@ -253,7 +266,7 @@ Container.prototype = {
 	 * Performs injection on an object synchronously
 	 *
 	 * @param {*} instance The object to perform injection on
-	 * @param {String} [key] The resolution key
+	 * @param {String} [key] The resolution key; defaults to instance.constructor.name
 	 */
 	injectSync: function(instance, key) {
 		key = key || getKeyFromInstance(instance);

@@ -1,45 +1,76 @@
 var should = require('should'),
-	Container = require('../').Container;
+	sahara = require('../'),
+	Container = sahara.Container;
 
 describe('Container', function() {
-
-	it('should resolve from constructor instead of key', function() {
-		function Foo() {}
-
-		var instance = new Foo(),
-			resolved = new Container()
-				.registerInstance(instance)
-				.resolveSync(Foo);
-
-		resolved.should.equal(instance);
-	});
-
-	it('should resolve from key', function() {
-		function Foo() {}
-
-		var instance = new Foo(),
-			resolved = new Container()
-				.registerInstance(instance)
-				.resolveSync('Foo');
-
-		resolved.should.equal(instance);
-	});
-
-	it('should allow options argument to be the key instead of an object', function() {
-		function Foo() {}
-
-		var instance = new Foo(),
-			resolved = new Container()
-				.registerInstance(instance, 'asdf')
-				.resolveSync('asdf');
-
-		resolved.should.equal(instance);
-	});
 
 	it('should throw if type is not registered', function() {
 		(function() { new Container().resolveSync('Foo'); })
 			.should
 			.throwError('Nothing with key "Foo" is registered in the container');
+	});
+
+	describe('resolve signature shortcuts', function() {
+		it('should resolve from constructor instead of key', function() {
+			function Foo() {}
+
+			var instance = new Foo(),
+				resolved = new Container()
+					.registerInstance(instance)
+					.resolveSync(Foo);
+
+			resolved.should.equal(instance);
+		});
+
+		it('should allow explicit key instead of options.key', function() {
+			function Foo() {}
+
+			var instance = new Foo(),
+				resolved = new Container()
+					.registerInstance(instance, 'asdf')
+					.resolveSync('asdf');
+
+			resolved.should.equal(instance);
+		});
+
+		it('should allow explicit lifetime instead of options.lifetime', function() {
+			var fetchCalled = false, storeCalled = false;
+			var lifetime = {
+				store: function(value) {
+					value.should.equal('foo');
+					storeCalled = true;
+				},
+				fetch: function() {
+					fetchCalled = true;
+				}
+			};
+
+			var resolved = new Container()
+					.registerInstance('foo', 'asdf', lifetime)
+					.resolveSync('asdf');
+
+			resolved.should.equal('foo');
+			fetchCalled.should.equal(true, 'lifetime.fetch() was not called');
+			storeCalled.should.equal(true, 'lifetime.store() was not called');
+		});
+
+		it('should allow explicit injections instead of options.injections', function() {
+			function Foo() {
+				this.foo = null;
+				this.bar = null;
+			}
+
+			var injection1 = sahara.inject.propertyValue('foo', 'hello'),
+				injection2 = sahara.inject.propertyValue('bar', 'world');
+
+			var resolved = new Container()
+				.registerType(Foo, null, null, injection1, injection2)
+				.resolveSync(Foo);
+
+			resolved.should.be.instanceOf(Foo);
+			resolved.should.have.property('foo', 'hello');
+			resolved.should.have.property('bar', 'world');
+		});
 	});
 
 	describe('registration from instance', function() {

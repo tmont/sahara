@@ -11,6 +11,55 @@ of function signatures, if you're into that kind of thing.
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
 ## Usage
+### API
+All of these are explained in detail below.
+
+```javascript
+sahara.Container = function() {};
+Container.prototype = {
+	registerType: function(ctor[, options]) {},
+	registerType: function(ctor[, key, lifetime, injection, injection...]) {},
+
+	registerInstance: function(instance[, options]) {},
+	registerInstance: function(instance[, key, lifetime, injection, injection...]) {},
+
+	registerFactory: (factory[, options]) {},
+    registerFactory: (factory[, key, lifetime, injection, injection...]) {},
+
+    resolve: function(key, callback) {}
+    resolveSync: function(key) {},
+
+    inject: function(instance, key, callback) {}
+    injectSync: function(instance[, key]) {}
+};
+
+sahara.inject = {
+	property: function(name, key) {},
+	propertyValue: function(name, value) {},
+	method: function(name, args) {}
+};
+
+sahara.lifetime = {
+	transient: function() {},
+	memory: function() {}
+};
+```
+
+Of note: there are two ways to register something in the container. You can
+pass an `options` object, or you can specify everything explicitly in the
+arguments. So these are equivalent:
+
+```javascript
+var options = {
+	key: 'foo',
+	lifetime: lifetime.memory(),
+	injections: [ inject.property('foo', 'bar'), inject.method('doStuff', [ 'arg1', arg2' ]) ]
+};
+
+container.registerInstance({}, options);
+container.registerInstance({}, options.key, options.lifetime, options.injections[0], options.injections[1]);
+```
+
 ### Registering an instance
 Sahara is simply a container for objects and object dependencies. In the simplest
 case, you shove an object into it using `registerInstance()` and retrieve it
