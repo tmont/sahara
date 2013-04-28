@@ -7,8 +7,12 @@ function PropertyValueInjection(name, value) {
 }
 
 PropertyValueInjection.prototype = {
-	inject: function(object, container, callback) {
+	injectSync: function(object, container) {
 		object[this.name] = this.value;
+	},
+
+	inject: function(object, container, callback) {
+		this.injectSync(object, container);
 		callback && callback();
 	}
 };
@@ -19,21 +23,21 @@ function PropertyInjection(name, key) {
 }
 
 PropertyInjection.prototype = {
-	inject: function(object, container, callback) {
-		if (callback) {
-			var name = this.name;
-			container.resolve(this.key, function(err, instance) {
-				if (err) {
-					callback(err);
-					return;
-				}
+	injectSync: function(object, container) {
+		object[this.name] = container.resolveSync(this.key);
+	},
 
-				object[name] = instance;
-				callback();
-			});
-		} else {
-			object[this.name] = container.resolve(this.key);
-		}
+	inject: function(object, container, callback) {
+		var name = this.name;
+		container.resolve(this.key, function(err, instance) {
+			if (err) {
+				callback(err);
+				return;
+			}
+
+			object[name] = instance;
+			callback();
+		});
 	}
 };
 
@@ -43,51 +47,59 @@ function MethodInjection(name, args) {
 }
 
 MethodInjection.prototype = {
-	inject: function(object, container, callback) {
+	createError: function() {
+		return new Error(
+			'Cannot perform method injection because the object does ' +
+				'not have a method "' + this.name + '"'
+		);
+	},
+
+	injectSync: function(object, container) {
 		if (!object[this.name] || typeof(object[this.name]) !== 'function') {
-			var err = new Error(
-				'Cannot perform method injection because the object does ' +
-					'not have a method "' + this.name + '"'
-			);
-
-			if (callback) {
-				callback(err);
-				return;
-			}
-
-			throw err;
+			throw this.createError();
 		}
 
 		var args = this.args, name = this.name;
 		if (!args) {
 			args = util.getTypeInfo(object[name], name).args;
-			if (callback) {
-				async.map(args, function(argInfo, next) {
-					container.resolve(argInfo.type, function(err, instance) {
-						process.nextTick(function() {
-							next(err, instance);
-						});
-					});
-				}, function(err, args) {
-					if (err) {
-						callback(err);
-						return;
-					}
-
-					object[name].apply(object, args);
-					callback();
-				});
-			} else {
-				args = args.map(function(argInfo) {
-					return container.resolve(argInfo.type);
-				});
-
-				object[name].apply(object, args);
-			}
-		} else {
-			object[name].apply(object, args);
-			callback && callback();
+			args = args.map(function(argInfo) {
+				return container.resolveSync(argInfo.type);
+			});
 		}
+
+		object[name].apply(object, args);
+	},
+
+	inject: function(object, container, callback) {
+		if (!object[this.name] || typeof(object[this.name]) !== 'function') {
+			callback(this.createError());
+			return;
+		}
+
+		function applyArgs(err, args) {
+			if (err) {
+				callback(err);
+				return;
+			}
+
+			object[name].apply(object, args);
+			callback();
+		}
+
+		var args = this.args, name = this.name;
+		if (args) {
+			applyArgs(null, args);
+			return;
+		}
+
+		args = util.getTypeInfo(object[name], name).args;
+		async.map(args, function(argInfo, next) {
+			container.resolve(argInfo.type, function(err, instance) {
+				process.nextTick(function() {
+					next(err, instance);
+				});
+			});
+		}, applyArgs);
 	}
 };
 

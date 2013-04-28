@@ -9,7 +9,7 @@ describe('Container', function() {
 		var instance = new Foo(),
 			resolved = new Container()
 				.registerInstance(instance)
-				.resolve(Foo);
+				.resolveSync(Foo);
 
 		resolved.should.equal(instance);
 	});
@@ -20,7 +20,7 @@ describe('Container', function() {
 		var instance = new Foo(),
 			resolved = new Container()
 				.registerInstance(instance)
-				.resolve('Foo');
+				.resolveSync('Foo');
 
 		resolved.should.equal(instance);
 	});
@@ -31,13 +31,13 @@ describe('Container', function() {
 		var instance = new Foo(),
 			resolved = new Container()
 				.registerInstance(instance, 'asdf')
-				.resolve('asdf');
+				.resolveSync('asdf');
 
 		resolved.should.equal(instance);
 	});
 
 	it('should throw if type is not registered', function() {
-		(function() { new Container().resolve('Foo'); })
+		(function() { new Container().resolveSync('Foo'); })
 			.should
 			.throwError('Nothing with key "Foo" is registered in the container');
 	});
@@ -48,7 +48,7 @@ describe('Container', function() {
 			var instance = new Foo(),
 				resolved = new Container()
 					.registerInstance(instance)
-					.resolve('Foo');
+					.resolveSync('Foo');
 
 			resolved.should.equal(instance);
 		});
@@ -58,7 +58,7 @@ describe('Container', function() {
 			var instance = new Foo(),
 				resolved = new Container()
 					.registerInstance(instance, { key: 'asdf' })
-					.resolve('asdf');
+					.resolveSync('asdf');
 
 			resolved.should.equal(instance);
 		});
@@ -77,7 +77,7 @@ describe('Container', function() {
 
 			new Container()
 				.registerInstance('foo', { key: 'foo', lifetime: lifetime })
-				.resolve('foo');
+				.resolveSync('foo');
 
 			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
 			storeCalled.should.equal(true, 'lifetime.store() should have been called');
@@ -89,7 +89,7 @@ describe('Container', function() {
 			var instance = {},
 				resolved = new Container()
 					.registerFactory(function() { return instance; }, { key: 'poopoo' })
-					.resolve('poopoo');
+					.resolveSync('poopoo');
 
 			resolved.should.equal(instance);
 		});
@@ -108,7 +108,7 @@ describe('Container', function() {
 						container.should.be.instanceOf(Container);
 						return instance;
 					}, { key: 'poopoo' })
-					.resolve('poopoo');
+					.resolveSync('poopoo');
 
 			resolved.should.equal(instance);
 		});
@@ -127,7 +127,7 @@ describe('Container', function() {
 
 			new Container()
 				.registerFactory(function() { return 'foo'; }, { key: 'foo', lifetime: lifetime })
-				.resolve('foo');
+				.resolveSync('foo');
 
 			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
 			storeCalled.should.equal(true, 'lifetime.store() should have been called');
@@ -145,7 +145,7 @@ describe('Container', function() {
 			function Foo() {}
 			var instance = new Container()
 				.registerType(Foo, { key: 'Lolz' })
-				.resolve('Lolz');
+				.resolveSync('Lolz');
 
 			instance.should.be.instanceOf(Foo);
 		});
@@ -154,7 +154,7 @@ describe('Container', function() {
 			var foo = function() {};
 			var instance = new Container()
 				.registerType(foo, { key: 'Lolz' })
-				.resolve('Lolz');
+				.resolveSync('Lolz');
 
 			instance.should.be.instanceOf(foo);
 		});
@@ -169,7 +169,7 @@ describe('Container', function() {
 				foo = new Container()
 					.registerInstance(bar)
 					.registerType(Foo)
-					.resolve('Foo');
+					.resolveSync('Foo');
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.be.equal(bar);
@@ -189,7 +189,7 @@ describe('Container', function() {
 				foo = new Container()
 					.registerInstance(bar)
 					.registerType(Foo)
-					.resolve('Foo');
+					.resolveSync('Foo');
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.equal(bar);
@@ -231,7 +231,7 @@ describe('Container', function() {
 
 			new Container()
 				.registerType(Foo, { key: 'foo', lifetime: lifetime })
-				.resolve('foo');
+				.resolveSync('foo');
 
 			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
 			storeCalled.should.equal(true, 'lifetime.store() should have been called');
@@ -241,7 +241,7 @@ describe('Container', function() {
 	describe('injection', function() {
 		it('should perform injection without resolution key', function() {
 			var injection = {
-				inject: function(instance, container) {
+				injectSync: function(instance, container) {
 					instance.injected = true;
 				}
 			};
@@ -251,13 +251,13 @@ describe('Container', function() {
 			var container = new Container().registerType(Foo, { injections: [ injection ] }),
 				instance = new Foo();
 
-			container.inject(instance);
+			container.injectSync(instance);
 			instance.should.have.property('injected', true);
 		});
 
 		it('should perform injection with resolution key', function() {
 			var injection = {
-				inject: function(instance, container) {
+				injectSync: function(instance, container) {
 					instance.injected = true;
 				}
 			};
@@ -267,18 +267,25 @@ describe('Container', function() {
 			var container = new Container().registerType(Foo, { key: 'asdf', injections: [ injection ] }),
 				instance = new Foo();
 
-			container.inject(instance, 'asdf');
+			container.injectSync(instance, 'asdf');
 			instance.should.have.property('injected', true);
 		});
 
 		it('should throw if key is not registered', function() {
 			(function() {
-				new Container().inject({}, 'asdf');
+				new Container().injectSync({}, 'asdf');
 			}).should.throwError('Nothing with key "asdf" is registered in the container');
 		});
 	});
 
 	describe('async', function() {
+		it('should raise error if type is not registered', function() {
+			new Container().resolve('Foo', function(err) {
+				err.should.be.instanceOf(Error);
+				err.should.have.property('message', 'Nothing with key "Foo" is registered in the container');
+			});
+		});
+
 		it('should resolve type with dependencies', function(done) {
 			function Foo(/** Bar */bar) { this.bar = bar; }
 			function Bar() {}
@@ -386,8 +393,7 @@ describe('Container', function() {
 			});
 
 			it('should raise error during resolution', function(done) {
-				var instance = {},
-					container = new Container()
+				var container = new Container()
 						.registerFactory(function(container, callback) {
 							callback('fail');
 						}, { key: 'poopoo' });

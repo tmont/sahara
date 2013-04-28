@@ -72,7 +72,7 @@ container
 **NOTE**: When using `registerType`, you *MUST* register a function that
 is a constructor
 
-#### Resolution keys
+#### Named functions
 By default, Sahara will use the name of the constructor as the resolution key.
 As a means of convenience (as you can see by most of the examples on this page),
 you can also pass the constructor to the `resolve()` function instead of
@@ -144,14 +144,20 @@ container.registerFactory(function(container) {
 	return new Foo();
 }, 'MyKey');
 
-container.resolve('MyKey');
+container.resolveSync('MyKey');
 ```
 
 ### Asynchronous resolution
 All examples given are synchronous. However, if you need to resolve something
-asynchronously, simply provide a callback as the second parameter to
-`container.resolve()` if your dependencies/factories are asynchronous:
+asynchronously, you can use the `resolve(key, callback)` function. Note that
+*everything* (from resolution, to injection, to object building) will be
+asynchronous, so bear that in mind.
 
+This is most relevant for `registerFactory()`, because you either have to be
+very careful, or make sure your factory function can handle both async
+and synchronous codepaths.
+
+Here is an asynchronous example:
 ```javascript
 function createThingAsync(container, callback) {
 	setTimeout(function() {
@@ -172,16 +178,24 @@ container.resolve('Thing', function(err, thing) {
 });
 ```
 
-In fact, even if your factory/dependency isn't asynchronous, simply providing
-a callback argument will make `resolve()` act asynchronously.
+But if you try to resolve `Thing` synchronously, nothing will be returned.
+If you need that flexibility, you'll have to account for both cases in
+your factory function:
 
 ```javascript
-container.registerInstance({}, 'Foo');
-var instance = container.resolve('Foo');
-container.resolve('Foo', function(err, asyncInstance) {
-	console.log(instance === asyncInstance); //true
-});
+function createThingMaybeAsync(container, callback) {
+	var theThing = { oh: 'hi mark' };
+	if (callback) {
+		callback(null, theThing);
+		return;
+	}
+
+	return theThing;
+}
 ```
+
+It's best to not mix the idioms, though, since some things just can't be
+done synchronously.
 
 ### Cyclic dependencies
 ...are bad.

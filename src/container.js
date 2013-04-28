@@ -1,7 +1,19 @@
 var DependencyGraph = require('dep-graph'),
+	ObjectBuilder = require('./builder'),
 	lifetimes = require('./lifetime'),
 	async = require('async'),
 	util = require('./util');
+
+function createUnregisteredError(key) {
+	return new Error('Nothing with key "' + key + '" is registered in the container');
+}
+
+function getKeyFromCtor(ctor) {
+	return ctor.name;
+}
+function getKeyFromInstance(instance) {
+	return instance && instance.constructor && instance.constructor.name;
+}
 
 function Registration(name, lifetime, injections) {
 	this.name = name;
@@ -24,60 +36,13 @@ function FactoryRegistration(name, lifetime, injections, factory) {
 	this.factory = factory;
 }
 
-function ObjectBuilder(dependencyResolver) {
-	this.dependencyResolver = dependencyResolver;
-}
-
-ObjectBuilder.prototype = {
-	newInstance: function(typeInfo, callback) {
-		var params = typeInfo.args,
-			ctor = typeInfo.ctor;
-
-		function invokeCtor(args) {
-			var instance = Object.create(ctor.prototype);
-			ctor.apply(instance, args);
-			return instance;
-		}
-
-		params.sort(function(a, b) {
-			if (a.position === b.position) {
-				return 0;
-			}
-
-			return a.position < b.position ? -1 : 1;
-		});
-
-		var self = this;
-		if (callback) {
-			async.map(params, function(typeData, next) {
-				self.dependencyResolver(typeData.type, function(err, param) {
-					process.nextTick(function() {
-						next(err, param);
-					});
-				});
-			}, function(err, args) {
-				if (err) {
-					callback(err);
-					return;
-				}
-
-				callback(null, invokeCtor(args));
-			});
-		} else {
-			var args = params.map(function(typeData) {
-				return this.dependencyResolver(typeData.type);
-			}.bind(this));
-
-			//dynamically invoke the constructor
-			return invokeCtor(args);
-		}
-	}
-};
-
 function Container() {
 	this.registrations = {};
 	this.graph = new DependencyGraph();
-	this.builder = new ObjectBuilder(this.resolve.bind(this));
+	this.builder = new ObjectBuilder(
+		this.resolve.bind(this),
+		this.resolveSync.bind(this)
+	);
 }
 
 Container.prototype = {
@@ -180,123 +145,127 @@ Container.prototype = {
 	 * Resolves a type to an instance
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
-	 * @param {Function} [callback]
-	 * @return {*} Nothing if callback was specified, otherwise the resolved object
+	 * @param {Function} callback
 	 */
 	resolve: function(key, callback) {
 		if (typeof(key) === 'function') {
-			key = key.name;
+			key = getKeyFromCtor(key);
 		}
 
 		var registration = this.registrations[key];
 		if (!registration) {
-			var err = new Error('Nothing with key "' + key + '" is registered in the container');
-			if (callback) {
-				callback(err);
-				return;
-			}
-
-			throw err;
+			callback(createUnregisteredError(key));
+			return;
 		}
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
-			if (callback) {
-				callback(null, existing);
-				return;
-			}
-
-			return existing;
+			callback(null, existing);
+			return;
 		}
 
-		var instance, self = this;
-		if (registration instanceof InstanceRegistration) {
-			instance = registration.instance;
-			if (callback) {
-				this.inject(instance, key, function(err) {
-					registration.lifetime.store(instance);
-					callback(err, instance);
-				});
-			} else {
-				this.inject(instance, key);
-				registration.lifetime.store(instance);
-				return instance;
-			}
-		} else if (registration instanceof TypeRegistration) {
-			if (callback) {
-				this.builder.newInstance(registration.typeInfo, function(err, instance) {
-					if (err) {
-						callback(err);
-						return;
-					}
-
-					self.inject(instance, key, function(err) {
-						registration.lifetime.store(instance);
-						callback(err, instance);
-					});
-				});
-			} else {
-				instance = this.builder.newInstance(registration.typeInfo);
-				this.inject(instance, key);
-				registration.lifetime.store(instance);
-				return instance;
-			}
-		} else if (registration instanceof FactoryRegistration) {
-			if (callback) {
-				registration.factory(this, function(err, instance) {
-					if (err) {
-						callback(err);
-						return;
-					}
-
-					self.inject(instance, key, function(err) {
-						registration.lifetime.store(instance);
-						callback(err, instance);
-					});
-				});
-			} else {
-				instance = registration.factory(this);
-				this.inject(instance, key);
-				registration.lifetime.store(instance);
-				return instance;
-			}
-		}
-	},
-
-	/**
-	 * Performs injection on the given instance
-	 *
-	 * @param {*} instance The instance to perform injection on
-	 * @param {String} key The resolution key; defaults to instance.constructor.name
-	 * @param {Function} [callback]
-	 */
-	inject: function(instance, key, callback) {
-		key = key || (instance && instance.constructor && instance.constructor.name);
-		var registration = this.registrations[key];
-		if (!registration) {
-			var err = new Error('Nothing with key "' + key + '" is registered in the container');
-			if (callback) {
+		var self = this;
+		function injectAndReturn(err, instance) {
+			if (err) {
 				callback(err);
 				return;
 			}
 
-			throw err;
+			self.inject(instance, key, function(err) {
+				if (!err) {
+					registration.lifetime.store(instance);
+				}
+
+				callback(err, instance);
+			});
+		}
+
+		if (registration instanceof InstanceRegistration) {
+			injectAndReturn(null, registration.instance);
+		} else if (registration instanceof TypeRegistration) {
+			this.builder.newInstance(registration.typeInfo, injectAndReturn);
+		} else if (registration instanceof FactoryRegistration) {
+			registration.factory(this, injectAndReturn);
+		}
+	},
+
+	/**
+	 * Resolve a type to an instance synchronously
+	 *
+	 * @param {String|Function} key The resolution key or constructor to resolve
+	 * @return {*} The resolved object
+	 */
+	resolveSync: function(key) {
+		if (typeof(key) === 'function') {
+			key = getKeyFromCtor(key);
+		}
+
+		var registration = this.registrations[key];
+		if (!registration) {
+			throw createUnregisteredError(key);
+		}
+
+		var existing = registration.lifetime.fetch();
+		if (existing) {
+			return existing;
+		}
+
+		var instance;
+		if (registration instanceof InstanceRegistration) {
+			instance = registration.instance;
+		} else if (registration instanceof TypeRegistration) {
+			instance = this.builder.newInstanceSync(registration.typeInfo);
+		} else if (registration instanceof FactoryRegistration) {
+			instance = registration.factory(this);
+		}
+
+		this.injectSync(instance, key);
+		registration.lifetime.store(instance);
+		return instance;
+	},
+
+	/**
+	 * Performs injection on an object
+	 *
+	 * @param {*} instance The object to perform injection on
+	 * @param {String} key The resolution key; defaults to instance.constructor.name
+	 * @param {Function} callback
+	 */
+	inject: function(instance, key, callback) {
+		key = key || getKeyFromInstance(instance);
+		var registration = this.registrations[key];
+		if (!registration) {
+			callback(createUnregisteredError(key));
+			return;
 		}
 
 		var self = this;
-		if (!callback) {
-			registration.injections.forEach(function(injection) {
-				injection.inject(instance, self);
-			});
-		} else {
-			async.forEach(registration.injections, function(injection, next) {
-				injection.inject(instance, self, function(err) {
-					process.nextTick(function() {
-						next(err);
-					});
+		async.forEach(registration.injections, function(injection, next) {
+			injection.inject(instance, self, function(err) {
+				process.nextTick(function() {
+					next(err);
 				});
-			}, callback);
+			});
+		}, callback);
+	},
+
+	/**
+	 * Performs injection on an object synchronously
+	 *
+	 * @param {*} instance The object to perform injection on
+	 * @param {String} [key] The resolution key
+	 */
+	injectSync: function(instance, key) {
+		key = key || getKeyFromInstance(instance);
+		var registration = this.registrations[key];
+		if (!registration) {
+			throw createUnregisteredError(key);
 		}
+
+		var self = this;
+		registration.injections.forEach(function(injection) {
+			injection.injectSync(instance, self);
+		});
 	}
 };
 
