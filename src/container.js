@@ -19,6 +19,7 @@ function Registration(name, lifetime, injections) {
 	this.name = name;
 	this.lifetime = lifetime || new lifetimes.Transient();
 	this.injections = injections || [];
+	this.interceptors = [];
 }
 
 function TypeRegistration(name, lifetime, injections, typeInfo) {
@@ -117,13 +118,14 @@ Container.prototype = {
 	 */
 	registerInstance: function(instance, key, lifetime, injections) {
 		var options = resolveSignatureToOptions(arguments);
-		options.key = options.key || (instance && instance.constructor && instance.constructor.name);
+		options.key = options.key || getKeyFromInstance(instance);
 		this.registrations[options.key] = new InstanceRegistration(
 			options.key,
 			options.lifetime,
 			options.injections,
 			instance
 		);
+
 		return this;
 	},
 
@@ -196,7 +198,7 @@ Container.prototype = {
 		if (registration instanceof InstanceRegistration) {
 			injectAndReturn(null, registration.instance);
 		} else if (registration instanceof TypeRegistration) {
-			this.builder.newInstance(registration.typeInfo, injectAndReturn);
+			this.builder.newInstance(registration.typeInfo, registration.interceptors, injectAndReturn);
 		} else if (registration instanceof FactoryRegistration) {
 			registration.factory(this, injectAndReturn);
 		}
@@ -227,7 +229,7 @@ Container.prototype = {
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
-			instance = this.builder.newInstanceSync(registration.typeInfo);
+			instance = this.builder.newInstanceSync(registration.typeInfo, registration.interceptors);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		}
@@ -279,6 +281,30 @@ Container.prototype = {
 		registration.injections.forEach(function(injection) {
 			injection.injectSync(instance, self);
 		});
+	},
+
+	/**
+	 * Configures interception
+	 *
+     * @param {String|Function} key The resolution key of the type to intercept
+	 * @param {Function} predicate A function that determines if a function call matches
+	 * @param {Function...} callHandler
+	 * @return {Container}
+	 */
+	intercept: function(key, predicate, callHandler) {
+		if (typeof(key) === 'function') {
+			key = getKeyFromCtor(key);
+		}
+
+		var registration = this.registrations[key];
+		if (!registration) {
+			throw createUnregisteredError(key);
+		}
+
+		var handlers = [].slice.call(arguments, 2);
+
+		registration.interceptors.push({ handlers: handlers, predicate: predicate });
+		return this;
 	}
 };
 

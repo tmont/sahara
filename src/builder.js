@@ -1,8 +1,52 @@
-var async = require('async');
+var async = require('async'),
+	Interceptor = require('./interception');
 
-function invokeCtor(ctor, args) {
+function invokeCtor(ctor, interceptors, args) {
 	var instance = Object.create(ctor.prototype);
 	ctor.apply(instance, args);
+
+	if (!interceptors.length) {
+		return instance;
+	}
+
+	//go through each property, and redefine it to invoke the interceptors
+	Object.keys(instance).forEach(function(key) {
+		var descriptor = Object.getOwnPropertyDescriptor(instance, key),
+			thunk = instance[key];
+
+		if (descriptor && !descriptor.configurable) {
+			return;
+		}
+
+		//only intercept function calls (for now)
+		if (typeof(thunk) !== 'function') {
+			return;
+		}
+
+		var handlers = [];
+		for (var i = 0; i < interceptors.length; i++) {
+			if (interceptors[i].predicate(instance, key)) {
+				[].push.apply(handlers, interceptors[i].handlers);
+			}
+		}
+
+		if (!handlers.length) {
+			//no interceptors match this function
+			return;
+		}
+
+		var interceptor = new Interceptor(handlers);
+
+		//redefine the property
+		Object.defineProperty(instance, key, {
+			writable: false,
+			value: function() {
+				//TODO handle async functions
+				return interceptor.handleCallSync(instance, key, [].slice.call(arguments), thunk);
+			}
+		});
+	});
+
 	return instance;
 }
 
@@ -25,15 +69,15 @@ function ObjectBuilder(resolver, resolverSync) {
 }
 
 ObjectBuilder.prototype = {
-	newInstanceSync: function(typeInfo) {
+	newInstanceSync: function(typeInfo, interceptors) {
 		var args = getParams(typeInfo).map(function(typeData) {
 			return this.resolverSync(typeData.type);
 		}.bind(this));
 
-		return invokeCtor(typeInfo.ctor, args);
+		return invokeCtor(typeInfo.ctor, interceptors, args);
 	},
 
-	newInstance: function(typeInfo, callback) {
+	newInstance: function(typeInfo, interceptors, callback) {
 		var self = this;
 		async.map(getParams(typeInfo), function(typeData, next) {
 			self.resolver(typeData.type, function(err, param) {
@@ -47,7 +91,7 @@ ObjectBuilder.prototype = {
 				return;
 			}
 
-			callback(null, invokeCtor(typeInfo.ctor, args));
+			callback(null, invokeCtor(typeInfo.ctor, interceptors, args));
 		});
 	}
 };
