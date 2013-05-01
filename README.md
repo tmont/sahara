@@ -2,10 +2,10 @@
 [![Build Status](https://travis-ci.org/tmont/sahara.png)](https://travis-ci.org/tmont/sahara)
 [![NPM version](https://badge.fury.io/js/sahara.png)](http://badge.fury.io/js/sahara)
 
-Sahara is a simple little inversion of control container. Specifically, it
-handles dependency injection. Even more specifically, it handles
-constructor, property and method injection. It even does some fancy type parsing
-of function signatures, if you're into that kind of thing.
+Sahara is an inversion of control container. It supports constructor,
+property and method injection, parsing the method signature automatically
+to determine dependencies. It also supports interception for function
+calls.
 
 ## Topics
 * [Installation](#installation)
