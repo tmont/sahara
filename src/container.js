@@ -287,11 +287,12 @@ Container.prototype = {
 	 * Configures interception
 	 *
 	 * @param {String|Function} key The resolution key of the type to intercept
-	 * @param {Function} predicate A function that determines if a function call matches
+	 * @param {Function|Boolean|String} matcher A predicate to determine if the
+	 * function should be intercepted
 	 * @param {Function...} callHandler
 	 * @return {Object} { sync: function() {}, async: function() {} }
 	 */
-	intercept: function(key, predicate, callHandler) {
+	intercept: function(key, matcher, callHandler) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
@@ -304,7 +305,7 @@ Container.prototype = {
 		var handlers = [].slice.call(arguments, 2),
 			interceptionData = {
 				handlers: handlers,
-				predicate: predicate
+				matcher: matcher
 			};
 
 		var container = this;

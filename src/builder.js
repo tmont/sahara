@@ -27,7 +27,7 @@ function invokeCtor(ctor, interceptors, args) {
 
 		var interceptionData;
 		for (var i = 0; i < interceptors.length; i++) {
-			if (interceptors[i].predicate(instance, key)) {
+			if (interceptors[i].matcher(instance, key)) {
 				interceptionData = interceptors[i];
 				break;
 			}

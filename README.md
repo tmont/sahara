@@ -54,7 +54,7 @@ Container.prototype = {
 	inject: function(instance, key, callback) {}
 	injectSync: function(instance[, key]) {},
 
-	intercept: function(key, predicate, callHandler[, callHandler...]) {}
+	intercept: function(key, matcher, callHandler[, callHandler...]) {}
 };
 
 sahara.inject = {
