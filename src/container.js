@@ -302,10 +302,22 @@ Container.prototype = {
 			throw createUnregisteredError(key);
 		}
 
+		var predicate = matcher;
+		if (typeof(matcher) === 'string') {
+			predicate = function(instance, methodName) {
+				return methodName === matcher;
+			};
+		} else if (typeof(matcher) !== 'function') {
+			matcher = !!matcher;
+			predicate = function() {
+				return matcher;
+			};
+		}
+
 		var handlers = [].slice.call(arguments, 2),
 			interceptionData = {
 				handlers: handlers,
-				matcher: matcher
+				matcher: predicate
 			};
 
 		var container = this;

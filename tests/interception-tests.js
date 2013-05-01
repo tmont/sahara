@@ -32,6 +32,125 @@ describe('Interception', function() {
 		handlerInvoked.should.equal(false, 'call handler should not have been invoked');
 	});
 
+	it('should allow explicit method name as matcher', function() {
+		function Foo() {
+			this.bar = function() {};
+			this.foo = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, 'bar', callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		resolved.foo();
+		invocations.should.equal(1);
+	});
+
+	it('should match everything if matcher === true', function() {
+		function Foo() {
+			this.bar = function() {
+			};
+			this.foo = function() {
+			};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, true, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		resolved.foo();
+		invocations.should.equal(2);
+	});
+
+	it('should match everything if matcher is truthy and not a string', function() {
+		function Foo() {
+			this.bar = function() {
+			};
+			this.foo = function() {
+			};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, 3, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		resolved.foo();
+		invocations.should.equal(2);
+	});
+
+	it('should match nothing if matcher === false', function() {
+		function Foo() {
+			this.bar = function() {};
+			this.foo = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, false, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		resolved.foo();
+		invocations.should.equal(0);
+	});
+
+	it('should match everything if matcher is falsey and not a string', function() {
+		function Foo() {
+			this.bar = function() {};
+			this.foo = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, null, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		resolved.foo();
+		invocations.should.equal(0);
+	});
+
 	describe('synchronously', function() {
 		it('should return value', function() {
 			function Foo() {
