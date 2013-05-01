@@ -7,6 +7,27 @@ handles dependency injection. Even more specifically, it handles
 constructor, property and method injection. It even does some fancy type parsing
 of function signatures, if you're into that kind of thing.
 
+## Topics
+* [Installation](#installation)
+* [Usage](#usage)
+	* [API Summary](#api)
+	* Registration
+		* [Registering an instance](#registering-an-instance)
+		* [Registering a type](#registering-a-type)
+			* [Named functions](#named-functions)
+			* [Anonymous functions](#anonymous-functions)
+		* [Deferred registration with factories](#registering-a-factory)
+		* [Asynchronous resolution](#asynchronous-resolution)
+		* [Handling cyclic dependencies](#cyclic-dependencies)
+		* [Lifetime management](#lifetime-management)
+		* [Injection](#property-and-method-injection)
+			* [Property injection](#property-injection)
+			* [Method injection](#method-injection)
+			* [Manual injection](#manual-injection)
+* [Real world example](#in-the-real-world)
+* [Development](#development)
+
+
 ## Installation
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
