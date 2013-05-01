@@ -447,26 +447,45 @@ describe('Interception', function() {
 			}
 
 			var invocation1 = false,
-				invocation2 = false;
+				invocation1Next = false,
+				invocation2 = false,
+				invocation2Next = false,
+				invocation3 = false,
+				invocation3Next = false;
 
 			function callHandler1(context, next) {
 				invocation1 = true;
-				next();
+				next(function() {
+					invocation1Next = true;
+				});
 			}
 
 			function callHandler2(context, next) {
 				invocation2 = true;
-				next();
+				next(function() {
+					invocation2Next = true;
+				});
+			}
+
+			function callHandler3(context, next) {
+				invocation3 = true;
+				next(function() {
+					invocation3Next = true;
+				});
 			}
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, true, callHandler1, callHandler2)
+				.intercept(Foo, always, true, callHandler1, callHandler2, callHandler3)
 				.resolveSync(Foo);
 
 			resolved.bar(function() {
 				invocation1.should.equal(true);
+				invocation1Next.should.equal(true, 'next() callback in first call handler not executed');
 				invocation2.should.equal(true);
+				invocation2Next.should.equal(true, 'next() callback in second call handler not executed');
+				invocation3.should.equal(true);
+				invocation3Next.should.equal(true, 'next() callback in third call handler not executed');
 				done();
 			});
 		});

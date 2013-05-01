@@ -49,7 +49,7 @@ Interceptor.prototype = {
 			},
 			arity = thunk.length;
 
-		function next(index) {
+		function next(index, prevCallback) {
 			var handler = handlers[index];
 			return function(callback) {
 				if (!handler) {
@@ -72,9 +72,15 @@ Interceptor.prototype = {
 							context.returnValue = result;
 						}
 
+						//this can modify the context, so it must come before we
+						//set callbackArgs
 						callback && callback();
+
 						var callbackArgs = [ context.error, context.returnValue ]
-							.concat([].slice.call(arguments, 2));
+							.concat([].slice.call(arguments).slice(2));
+
+						//ugh...
+						prevCallback && prevCallback();
 						userCallback && userCallback.apply(null, callbackArgs);
 					});
 
@@ -82,7 +88,10 @@ Interceptor.prototype = {
 					return;
 				}
 
-				handler(context, next(index + 1));
+				handler(context, next(index + 1, function() {
+					prevCallback && prevCallback();
+					callback && callback();
+				}));
 			};
 		}
 
