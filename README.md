@@ -395,6 +395,7 @@ container.inject(instance, 'Foo', function(err) {
 
 	//injection completed successfully
 });
+```
 
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects
