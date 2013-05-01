@@ -450,7 +450,7 @@ There are three components to configuring registration:
 The matcher predicate is a function that takes in two arguments:
 
 1. `instance` - the object instance
-1. `methodName` - the name of the method that
+1. `methodName` - the name of the method that is being invoked
 
 If the matcher returns `true`, then the method will be intercepted.
 
@@ -483,7 +483,7 @@ It is a function that takes two arguments:
 	* `context.returnValue` - the value to be returned by the method
 1. `next` - Invoke the next handler in the chain
 
-You **MUST** call `next()` once and only once somewhere in your call handler,
+You **MUST** call `next()` *once and only once* somewhere in your call handler,
 to make sure the handler chain completes. If you have multiple call handlers
 defined, it will invoke the next one. Otherwise, it will invoke the original
 method.
@@ -547,7 +547,7 @@ foo.bar();
 ### Asynchronous interception
 All you've seen so far is synchronous interception. Asynchronous interception
 is a little tricky. Since Sahara simply wraps the original function call,
-for async functions, it needs to assume some things:
+it needs to assume some things for async functions:
 
 1. The last argument is the callback
 1. The callback uses the standard node convention: `callback(err, returnValue)`
@@ -573,8 +573,8 @@ function(options, callback) {
 ```
 
 Your call handler may also change slightly. If you want to do something
-with the context after calling `next()`, you can pass an optional callback
-to `next()`. So our logging call handler from above becomes:
+after calling `next()`, you can pass an optional callback to `next()`. So our
+logging call handler from above becomes:
 
 ```javascript
 function logMethodCallsAsync(context, next) {
