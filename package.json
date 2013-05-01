@@ -1,6 +1,6 @@
 {
 	"name": "sahara",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"description": "An inversion-of-control container for managing dependencies. Supports constructor, property and method injection",
 	"keywords": [ "ioc", "dependency", "injection", "container" ],
 	"directories": {
