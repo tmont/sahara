@@ -151,6 +151,63 @@ describe('Interception', function() {
 		invocations.should.equal(0);
 	});
 
+	it('should match type if matcher is an array', function() {
+		function Foo() {
+			this.bar = function() {};
+		}
+		function Bar() {
+			this.baz = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var container = new Container()
+			.registerType(Foo)
+			.registerType(Bar)
+			.intercept([ Foo ], callHandler).sync();
+
+		container.resolveSync(Foo).bar();
+		invocations.should.equal(1);
+		container.resolveSync(Bar).baz();
+		invocations.should.equal(1);
+	});
+
+	it('should match type and method name if matcher is an array', function() {
+		function Foo() {
+			this.foo = function() {};
+			this.bar = function() {};
+		}
+		function Bar() {
+			this.bar = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var container = new Container()
+			.registerType(Foo)
+			.registerType(Bar)
+			.intercept([ Foo, 'bar' ], callHandler).sync();
+
+		var foo = container.resolveSync(Foo),
+			bar = container.resolveSync(Bar);
+		foo.bar();
+		invocations.should.equal(1);
+		foo.foo();
+		invocations.should.equal(1);
+		bar.bar();
+		invocations.should.equal(1);
+	});
+
 	it('should apply matcher globally', function() {
 		function Foo() {
 			this.bar = function() {};

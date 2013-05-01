@@ -557,7 +557,9 @@ foo.bar();
 The `matcher` argument accepts other things besides a function.
 
 * If you give it a string, it will only intercept methods with that name
-* If you give it something that's not a function or a string, it will
+* If you give it an array, the `matcher[0]` is the type, and `matcher[1]` is
+  the method name (`matcher[1]` is optional)
+* If you give it something that's not a function, array or string, it will
   convert it to a boolean, and either match everything or nothing.
 	* truthy values (`!!value === true`) match everything
 	* falsey values (`!!value === false`) match nothing
@@ -567,6 +569,13 @@ So the example above could be configured more easily:
 container = new Container()
 	.registerType(Foo)
 	.intercept('bar', logMethodCalls, addFoo).sync();
+```
+
+Or even better:
+```javascript
+container = new Container()
+	.registerType(Foo)
+	.intercept([ Foo, 'bar' ], logMethodCalls, addFoo).sync();
 ```
 
 ### Asynchronous interception

@@ -286,7 +286,7 @@ Container.prototype = {
 	/**
 	 * Configures interception
 	 *
-	 * @param {Function|Boolean|String} matcher A predicate to determine if the
+	 * @param {Function|Boolean|String|Array} matcher A predicate to determine if the
 	 * function should be intercepted
 	 * @param {Function...} callHandler
 	 * @return {Object} { sync: function() {}, async: function() {} }
@@ -296,6 +296,10 @@ Container.prototype = {
 		if (typeof(matcher) === 'string') {
 			predicate = function(instance, methodName) {
 				return methodName === matcher;
+			};
+		} else if (Array.isArray(matcher)) {
+			predicate = function(instance, methodName) {
+				return instance instanceof matcher[0] && (!matcher[1] || matcher[1] === methodName);
 			};
 		} else if (typeof(matcher) !== 'function') {
 			matcher = !!matcher;
