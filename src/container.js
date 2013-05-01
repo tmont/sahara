@@ -288,11 +288,10 @@ Container.prototype = {
 	 *
 	 * @param {String|Function} key The resolution key of the type to intercept
 	 * @param {Function} predicate A function that determines if a function call matches
-	 * @param {Boolean} isAsync Whether these call handlers are asynchronous
 	 * @param {Function...} callHandler
-	 * @return {Container}
+	 * @return {Object} { sync: function() {}, async: function() {} }
 	 */
-	intercept: function(key, predicate, isAsync, callHandler) {
+	intercept: function(key, predicate, callHandler) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
@@ -302,15 +301,25 @@ Container.prototype = {
 			throw createUnregisteredError(key);
 		}
 
-		var handlers = [].slice.call(arguments, 3);
+		var handlers = [].slice.call(arguments, 2),
+			interceptionData = {
+				handlers: handlers,
+				predicate: predicate
+			};
 
-		registration.interceptors.push({
-			handlers: handlers,
-			predicate: predicate,
-			isAsync: isAsync
-		});
-
-		return this;
+		var container = this;
+		return {
+			sync: function() {
+				interceptionData.isAsync = false;
+				registration.interceptors.push(interceptionData);
+				return container;
+			},
+			async: function() {
+				interceptionData.isAsync = true;
+				registration.interceptors.push(interceptionData);
+				return container;
+			}
+		};
 	}
 };
 
