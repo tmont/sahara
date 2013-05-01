@@ -17,13 +17,14 @@ of function signatures, if you're into that kind of thing.
 			* [Named functions](#named-functions)
 			* [Anonymous functions](#anonymous-functions)
 		* [Deferred registration with factories](#registering-a-factory)
-		* [Asynchronous resolution](#asynchronous-resolution)
-		* [Handling cyclic dependencies](#cyclic-dependencies)
-		* [Lifetime management](#lifetime-management)
-		* [Injection](#property-and-method-injection)
-			* [Property injection](#property-injection)
-			* [Method injection](#method-injection)
-			* [Manual injection](#manual-injection)
+	* [Asynchronous resolution](#asynchronous-resolution)
+	* [Handling cyclic dependencies](#cyclic-dependencies)
+	* [Lifetime management](#lifetime-management)
+	* [Injection](#injection)
+		* [Property injection](#property-injection)
+		* [Method injection](#method-injection)
+		* [Manual injection](#manual-injection)
+	* [Interception](#interception)
 * [Real world example](#in-the-real-world)
 * [Development](#development)
 
@@ -51,7 +52,9 @@ Container.prototype = {
 	resolveSync: function(key) {},
 
 	inject: function(instance, key, callback) {}
-	injectSync: function(instance[, key]) {}
+	injectSync: function(instance[, key]) {},
+
+	intercept: function(key, predicate, callHandler[, callHandler...]) {}
 };
 
 sahara.inject = {
@@ -304,7 +307,7 @@ function DbConnection() {
 container.registerType(DbConnection, { lifetime: lifetime.memory() });
 ```
 
-### Property and method injection
+### Injection
 By default, Sahara performs *constructor injection*. That is, it resolves
 dependencies that are specified in the constructor. What if you have
 dependencies that are not in the constructor? Well, there are a few ways
@@ -415,6 +418,195 @@ container.inject(instance, 'Foo', function(err) {
 	}
 
 	//injection completed successfully
+});
+```
+
+### Interception
+Interception is a means of intercepting a function call and doing something
+before or after. For example, you could modify the return value, nullify
+an error, perform extra logging, etc.
+
+### Limitations
+Interception in JavaScript is accomplished by defining a non-writable property
+that wraps a function call. So, if your method is
+[not configurable](https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor#Description)
+then it *not* be intercepted.
+
+Note that currently only [types](#registering-a-type) can be intercepted. This
+may change in the future.
+
+### Usage
+There are three components to configuring registration:
+
+1. Define a matcher predicate, which will determine when a function
+   call should be intercepted
+1. Define a call handler, which will be executed when the function
+   is called
+1. Call `container.intercept()` **after** registering the type
+	* `container.intercept().sync()` for synchronous interception
+	* `container.intercept().async()` for asynchronous interception
+
+#### Matchers
+The matcher predicate is a function that takes in two arguments:
+
+1. `instance` - the object instance
+1. `methodName` - the name of the method that
+
+If the matcher returns `true`, then the method will be intercepted.
+
+```javascript
+//intercept every possible function
+function always() {
+	return true;
+}
+
+//only intercept the validate() method
+function onlyValidate(instance, methodName) {
+	return methodName === 'validate';
+}
+
+//only intercept validate() if the instance is dirty
+function conditionalValidate(instance, methodName) {
+	return instance.isDirty && methodName === 'validate';
+}
+```
+
+#### Call handlers
+The call handler is invoked when the intercepted function is called.
+It is a function that takes two arguments:
+
+1. `context` - An object representing the current state of the invocation
+	* `context.instance` - the object instance
+	* `context.methodName` - the name of the method being invoked
+	* `context.arguments` - an array of arguments passed to the method
+	* `context.error` - the error that was raised during invocation
+	* `context.returnValue` - the value to be returned by the method
+1. `next` - Invoke the next handler in the chain
+
+You **MUST** call `next()` once and only once somewhere in your call handler,
+to make sure the handler chain completes. If you have multiple call handlers
+defined, it will invoke the next one. Otherwise, it will invoke the original
+method.
+
+```javascript
+//log the signature of the method and return value
+function logMethodCalls(context, next) {
+	var message = context.instance.constructor.name + '.' + context.methodName + '(' +
+		context.arguments.map(function(arg) { return arg.toString(); }).join(',') + ')';
+
+	console.log(message);
+	next();
+	console.log(message + ': ' + (context.error || context.returnValue));
+}
+
+//modify the return value
+function ohHiMark(context, next) {
+	next();
+	context.returnValue = 'oh hi mark';
+}
+
+//force an error
+function alwaysErrors(context, next) {
+	next();
+	context.error = new Error('NOPE.');
+}
+
+//nullify an error
+function noErrors(context, next) {
+	next();
+	context.error = null;
+}
+
+//modify function arguments
+function addFoo(context, next) {
+	context.arguments[0] = 'foo';
+	next();
+}
+```
+
+### Putting it all together
+```javascript
+function Foo() {
+	this.bar = function(message) {
+		console.log(message);
+	};
+}
+
+function matchBar(instance, methodName) {
+	return methodName === 'bar';
+}
+
+var container = new Container()
+	.registerType(Foo)
+	.intercept(Foo, matchBar, logMethodCalls, addFoo).sync();
+
+var foo = container.resolveSync(Foo);
+foo.bar();
+```
+
+### Asynchronous interception
+All you've seen so far is synchronous interception. Asynchronous interception
+is a little tricky. Since Sahara simply wraps the original function call,
+for async functions, it needs to assume some things:
+
+1. The last argument is the callback
+1. The callback uses the standard node convention: `callback(err, returnValue)`
+
+Sahara will try to gracefully handle situations where the callback is not
+given, or optional arguments are omitted. If you're not doing anything too
+weird, you should be perfectly fine. So even if you have a function
+defined like this that has a variable arity, Sahara will still do the right thing:
+
+```javascript
+function(options, callback) {
+	if (typeof(options) === 'function') {
+		callback = options;
+		options = {};
+	}
+	if (!callback) {
+		callback = arguments[arguments.length - 1];
+	}
+
+	//do stuff
+	callback(err, result);
+}
+```
+
+Your call handler may also change slightly. If you want to do something
+with the context after calling `next()`, you can pass an optional callback
+to `next()`. So our logging call handler from above becomes:
+
+```javascript
+function logMethodCallsAsync(context, next) {
+	var message = context.instance.constructor.name + '.' + context.methodName + '(' +
+        context.arguments.map(function(arg) { return arg.toString(); }).join(',') + ')';
+
+    console.log(message);
+    next(function() {
+        console.log(message + ': ' + (context.error || context.returnValue));
+    });
+}
+```
+
+And finally, when configuring interception, use the `.async()` chain:
+
+```javascript
+function Foo() {
+	this.bar = function(message, callback) {
+		console.log(message);
+		callback();
+	};
+}
+
+var container = new Container()
+	.registerType(Foo)
+	.intercept(Foo, matchBar, logMethodCallsAsync).async();
+
+//note that aysnc interception is only for asynchronous methods
+//so you can still resolve synchronously and intercept asynchronously.
+
+container.resolveSync(Foo).bar('hello world', function(err, result) {
+	//...
 });
 ```
 
