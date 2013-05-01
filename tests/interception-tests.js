@@ -1,5 +1,6 @@
 var should = require('should'),
-	Container = require('../').Container;
+	Container = require('../').Container,
+	async = require('async');
 
 describe('Interception', function() {
 
@@ -437,6 +438,94 @@ describe('Interception', function() {
 				result.should.equal('bar');
 				done();
 			});
+		});
+
+		it('should handle variable arity', function(done) {
+			function Foo() {
+				this.bar = function() {
+					var callback = arguments[arguments.length - 1];
+					callback();
+				};
+			}
+
+			var noArgsInvoked = false,
+				someArgsInvoked = false;
+
+			function callHandler1(context, next) {
+				if (context.arguments.length > 1) {
+					someArgsInvoked = true;
+				} else {
+					noArgsInvoked = true;
+				}
+
+				next();
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(Foo, always, true, callHandler1)
+				.resolveSync(Foo);
+
+			function noArgs(callback) {
+				resolved.bar(function() {
+					noArgsInvoked.should.equal(true);
+					callback();
+				});
+			}
+
+			function someArgs(callback) {
+				resolved.bar(1, null, {}, ['asdf'], function() {
+					someArgsInvoked.should.equal(true);
+					callback();
+				});
+			}
+
+			async.series([ noArgs, someArgs ], done);
+		});
+
+		it('should handle call when too few arguments passed', function(done) {
+			function Foo() {
+				this.bar = function(foo, callback) {
+					if (typeof(foo) === 'function') {
+						callback = foo;
+					}
+
+					callback();
+				};
+			}
+
+			var notEnoughArgsInvoked = false,
+				enoughArgsInvoked = false;
+
+			function callHandler1(context, next) {
+				if (context.arguments.length > 1) {
+					enoughArgsInvoked = true;
+				} else {
+					notEnoughArgsInvoked = true;
+				}
+				next();
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(Foo, always, true, callHandler1)
+				.resolveSync(Foo);
+
+			function notEnoughArgs(callback) {
+				resolved.bar(function() {
+					notEnoughArgsInvoked.should.equal(true);
+					callback();
+				});
+			}
+
+			function enoughArgs(callback) {
+				resolved.bar('foo', function() {
+					enoughArgsInvoked.should.equal(true);
+					callback();
+				});
+			}
+
+			async.series([ notEnoughArgs, enoughArgs ], done);
 		});
 
 		it('should execute multiple call handlers', function(done) {
