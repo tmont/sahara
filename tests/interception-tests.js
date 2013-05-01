@@ -204,15 +204,16 @@ describe('Interception', function() {
 				};
 			}
 
-			var invocations = 0;
+			var invocation1 = false,
+				invocation2 = false;
 
 			function callHandler1(context, next) {
-				invocations++;
+				invocation1 = true;
 				next();
 			}
 
 			function callHandler2(context, next) {
-				invocations++;
+				invocation2 = true;
 				next();
 			}
 
@@ -222,7 +223,8 @@ describe('Interception', function() {
 				.resolveSync(Foo)
 				.bar();
 
-			invocations.should.equal(2);
+			invocation1.should.equal(true);
+			invocation2.should.equal(true);
 		});
 
 		it('should filter out calls by method name', function() {
@@ -231,10 +233,16 @@ describe('Interception', function() {
 				this.foo = function() {};
 			}
 
-			var invocations = 0;
+			var invocation1 = false,
+				invocation2 = false;
 
-			function callHandler(context, next) {
-				invocations++;
+			function callHandler1(context, next) {
+				invocation1 = true;
+				next();
+			}
+
+			function callHandler2(context, next) {
+				invocation2 = true;
 				next();
 			}
 
@@ -245,14 +253,15 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, matcher, callHandler)
-				.intercept(Foo, function() { return false; }, callHandler)
+				.intercept(Foo, matcher, callHandler1)
+				.intercept(Foo, function() { return false; }, callHandler2)
 				.resolveSync(Foo);
 
 			resolved.bar();
 			resolved.foo();
 
-			invocations.should.equal(1);
+			invocation1.should.equal(true);
+			invocation2.should.equal(false);
 		});
 	});
 });
