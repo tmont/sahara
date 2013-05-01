@@ -1,11 +1,11 @@
 var async = require('async'),
 	Interceptor = require('./interception');
 
-function invokeCtor(ctor, interceptors, args) {
+function invokeCtor(ctor, handlerConfigs, args) {
 	var instance = Object.create(ctor.prototype);
 	ctor.apply(instance, args);
 
-	if (!interceptors.length) {
+	if (!handlerConfigs.length) {
 		return instance;
 	}
 
@@ -25,26 +25,33 @@ function invokeCtor(ctor, interceptors, args) {
 			return;
 		}
 
-		var interceptionData;
-		for (var i = 0; i < interceptors.length; i++) {
-			if (interceptors[i].matcher(instance, key)) {
-				interceptionData = interceptors[i];
-				break;
+		var isAsync;
+		var matchingConfigs = handlerConfigs.filter(function(data) {
+			var isMatch = data.matcher(instance, key);
+			if (isMatch && isAsync === undefined) {
+				isAsync = data.isAsync;
 			}
-		}
 
-		if (!interceptionData) {
-			//no interceptors match this function
+			return isMatch && data.isAsync === isAsync;
+		});
+
+		if (!matchingConfigs.length) {
+			//no handlers match this function
 			return;
 		}
 
-		var interceptor = new Interceptor(interceptionData.handlers);
+		var handlers = [];
+		matchingConfigs.forEach(function(data) {
+			[].push.apply(handlers, data.handlers);
+		});
+
+		var interceptor = new Interceptor(handlers);
 
 		//redefine the property
 		Object.defineProperty(instance, key, {
 			writable: false,
 			value: function() {
-				var methodName = 'handleCall' + (interceptionData.isAsync ? '' : 'Sync');
+				var methodName = 'handleCall' + (isAsync ? '' : 'Sync');
 				return interceptor[methodName](instance, key, [].slice.call(arguments), thunk);
 			}
 		});
@@ -72,15 +79,15 @@ function ObjectBuilder(resolver, resolverSync) {
 }
 
 ObjectBuilder.prototype = {
-	newInstanceSync: function(typeInfo, interceptors) {
+	newInstanceSync: function(typeInfo, handlerConfigs) {
 		var args = getParams(typeInfo).map(function(typeData) {
 			return this.resolverSync(typeData.type);
 		}.bind(this));
 
-		return invokeCtor(typeInfo.ctor, interceptors, args);
+		return invokeCtor(typeInfo.ctor, handlerConfigs, args);
 	},
 
-	newInstance: function(typeInfo, interceptors, callback) {
+	newInstance: function(typeInfo, handlerConfigs, callback) {
 		var self = this;
 		async.map(getParams(typeInfo), function(typeData, next) {
 			self.resolver(typeData.type, function(err, param) {
@@ -94,7 +101,7 @@ ObjectBuilder.prototype = {
 				return;
 			}
 
-			callback(null, invokeCtor(typeInfo.ctor, interceptors, args));
+			callback(null, invokeCtor(typeInfo.ctor, handlerConfigs, args));
 		});
 	}
 };

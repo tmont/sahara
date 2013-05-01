@@ -19,7 +19,6 @@ function Registration(name, lifetime, injections) {
 	this.name = name;
 	this.lifetime = lifetime || new lifetimes.Transient();
 	this.injections = injections || [];
-	this.interceptors = [];
 }
 
 function TypeRegistration(name, lifetime, injections, typeInfo) {
@@ -39,6 +38,7 @@ function FactoryRegistration(name, lifetime, injections, factory) {
 
 function Container() {
 	this.registrations = {};
+	this.handlerConfigs = [];
 	this.graph = new DependencyGraph();
 	this.builder = new ObjectBuilder(
 		this.resolve.bind(this),
@@ -198,7 +198,7 @@ Container.prototype = {
 		if (registration instanceof InstanceRegistration) {
 			injectAndReturn(null, registration.instance);
 		} else if (registration instanceof TypeRegistration) {
-			this.builder.newInstance(registration.typeInfo, registration.interceptors, injectAndReturn);
+			this.builder.newInstance(registration.typeInfo, this.handlerConfigs, injectAndReturn);
 		} else if (registration instanceof FactoryRegistration) {
 			registration.factory(this, injectAndReturn);
 		}
@@ -229,7 +229,7 @@ Container.prototype = {
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
-			instance = this.builder.newInstanceSync(registration.typeInfo, registration.interceptors);
+			instance = this.builder.newInstanceSync(registration.typeInfo, this.handlerConfigs);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		}
@@ -286,22 +286,12 @@ Container.prototype = {
 	/**
 	 * Configures interception
 	 *
-	 * @param {String|Function} key The resolution key of the type to intercept
 	 * @param {Function|Boolean|String} matcher A predicate to determine if the
 	 * function should be intercepted
 	 * @param {Function...} callHandler
 	 * @return {Object} { sync: function() {}, async: function() {} }
 	 */
-	intercept: function(key, matcher, callHandler) {
-		if (typeof(key) === 'function') {
-			key = getKeyFromCtor(key);
-		}
-
-		var registration = this.registrations[key];
-		if (!registration) {
-			throw createUnregisteredError(key);
-		}
-
+	intercept: function(matcher, callHandler) {
 		var predicate = matcher;
 		if (typeof(matcher) === 'string') {
 			predicate = function(instance, methodName) {
@@ -314,8 +304,8 @@ Container.prototype = {
 			};
 		}
 
-		var handlers = [].slice.call(arguments, 2),
-			interceptionData = {
+		var handlers = [].slice.call(arguments, 1),
+			handlerConfig = {
 				handlers: handlers,
 				matcher: predicate
 			};
@@ -323,13 +313,13 @@ Container.prototype = {
 		var container = this;
 		return {
 			sync: function() {
-				interceptionData.isAsync = false;
-				registration.interceptors.push(interceptionData);
+				handlerConfig.isAsync = false;
+				container.handlerConfigs.push(handlerConfig);
 				return container;
 			},
 			async: function() {
-				interceptionData.isAsync = true;
-				registration.interceptors.push(interceptionData);
+				handlerConfig.isAsync = true;
+				container.handlerConfigs.push(handlerConfig);
 				return container;
 			}
 		};

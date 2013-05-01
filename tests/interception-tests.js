@@ -25,7 +25,7 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, always, callHandler).sync()
+			.intercept(always, callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar().should.equal('baz');
@@ -47,7 +47,7 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, 'bar', callHandler).sync()
+			.intercept('bar', callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar();
@@ -72,7 +72,7 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, true, callHandler).sync()
+			.intercept(true, callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar();
@@ -97,7 +97,7 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, 3, callHandler).sync()
+			.intercept(3, callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar();
@@ -120,7 +120,7 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, false, callHandler).sync()
+			.intercept(false, callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar();
@@ -143,12 +143,110 @@ describe('Interception', function() {
 
 		var resolved = new Container()
 			.registerType(Foo)
-			.intercept(Foo, null, callHandler).sync()
+			.intercept(null, callHandler).sync()
 			.resolveSync(Foo);
 
 		resolved.bar();
 		resolved.foo();
 		invocations.should.equal(0);
+	});
+
+	it('should apply matcher globally', function() {
+		function Foo() {
+			this.bar = function() {};
+		}
+
+		function Bar() {
+			this.foo = function() {};
+		}
+
+		var callHandler1Invocations = 0,
+			callHandler2Invocations = 0;
+
+		function callHandler1(context, next) {
+			callHandler1Invocations++;
+			next();
+		}
+
+		function callHandler2(context, next) {
+			callHandler2Invocations++;
+			next();
+		}
+
+		var container = new Container()
+				.registerType(Foo)
+				.registerType(Bar)
+				.intercept(true, callHandler1).sync()
+				.intercept(true, callHandler2).sync(),
+			foo = container.resolveSync(Foo),
+			bar = container.resolveSync(Bar);
+
+		foo.bar();
+		bar.foo();
+		callHandler1Invocations.should.equal(2);
+		callHandler2Invocations.should.equal(2);
+	});
+
+	it('should not mix async and sync handlers when sync was registered first', function() {
+		function Foo() {
+			this.bar = function() {};
+		}
+
+		var callHandler1Invocations = 0,
+			callHandler2Invocations = 0;
+
+		function callHandler1(context, next) {
+			callHandler1Invocations++;
+			next();
+		}
+
+		function callHandler2(context, next) {
+			callHandler2Invocations++;
+			next();
+		}
+
+		var container = new Container()
+				.registerType(Foo)
+				.intercept(true, callHandler1).sync()
+				.intercept(true, callHandler2).async(),
+			foo = container.resolveSync(Foo);
+
+		foo.bar();
+		callHandler1Invocations.should.equal(1);
+		callHandler2Invocations.should.equal(0);
+	});
+
+	it('should not mix async and sync handlers when async was registered first', function(done) {
+		function Foo() {
+			this.bar = function(callback) {
+				callback();
+			};
+		}
+
+		var callHandler1Invocations = 0,
+			callHandler2Invocations = 0;
+
+		function callHandler1(context, next) {
+			callHandler1Invocations++;
+			next();
+		}
+
+		function callHandler2(context, next) {
+			callHandler2Invocations++;
+			next();
+		}
+
+		var container = new Container()
+				.registerType(Foo)
+				.intercept(true, callHandler1).async()
+				.intercept(true, callHandler2).sync(),
+			foo = container.resolveSync(Foo);
+
+		foo.bar(function() {
+			callHandler1Invocations.should.equal(1);
+			callHandler2Invocations.should.equal(0);
+			done();
+		});
 	});
 
 	describe('synchronously', function() {
@@ -172,7 +270,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			resolved.bar().should.equal('foo');
@@ -200,7 +298,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			(function() { resolved.bar() }).should.throwError('hello world');
@@ -229,7 +327,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			var arg1 = { foo: 'bar' }, arg2 = 'asdf';
@@ -259,7 +357,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			(function() { resolved.bar(); }).should.not.throwError();
@@ -287,7 +385,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			(function() { resolved.bar(); }).should.throwError(error);
@@ -312,7 +410,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			resolved.bar().should.equal('bar');
@@ -338,7 +436,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).sync()
+				.intercept(always, callHandler).sync()
 				.resolveSync(Foo);
 
 			resolved.bar('foo').should.equal('bar');
@@ -367,7 +465,7 @@ describe('Interception', function() {
 
 			new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler1, callHandler2).sync()
+				.intercept(always, callHandler1, callHandler2).sync()
 				.resolveSync(Foo)
 				.bar();
 
@@ -395,7 +493,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, matcher, callHandler1).sync()
+				.intercept(matcher, callHandler1).sync()
 				.resolveSync(Foo);
 
 			resolved.bar();
@@ -422,7 +520,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function(err, result) {
@@ -449,7 +547,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function(err, result) {
@@ -481,7 +579,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function(err) {
@@ -512,7 +610,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function(err) {
@@ -541,7 +639,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function(err, result) {
@@ -572,7 +670,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler).async()
+				.intercept(always, callHandler).async()
 				.resolveSync(Foo);
 
 			resolved.bar('foo', function(err, result) {
@@ -606,7 +704,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler1).async()
+				.intercept(always, callHandler1).async()
 				.resolveSync(Foo);
 
 			function noArgs(callback) {
@@ -651,7 +749,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler1).async()
+				.intercept(always, callHandler1).async()
 				.resolveSync(Foo);
 
 			function notEnoughArgs(callback) {
@@ -708,7 +806,7 @@ describe('Interception', function() {
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(Foo, always, callHandler1, callHandler2, callHandler3).async()
+				.intercept(always, callHandler1, callHandler2, callHandler3).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function() {

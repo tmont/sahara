@@ -54,7 +54,7 @@ Container.prototype = {
 	inject: function(instance, key, callback) {}
 	injectSync: function(instance[, key]) {},
 
-	intercept: function(key, matcher, callHandler[, callHandler...]) {}
+	intercept: function(matcher, callHandler[, callHandler...]) {}
 };
 
 sahara.inject = {
@@ -442,9 +442,18 @@ There are three components to configuring registration:
    call should be intercepted
 1. Define a call handler, which will be executed when the function
    is called
-1. Call `container.intercept()` **after** registering the type
+1. Call `container.intercept()`
 	* `container.intercept().sync()` for synchronous interception
 	* `container.intercept().async()` for asynchronous interception
+
+**NOTE**: interception is configured internally during object construction,
+which occurs when you call `resolve()` or `resolveSync()`. So make sure
+interception has been configured *prior* to resolving the type.
+
+You should also make use of the [memory lifetime](#lifetime-management) where
+appropriate, as determining when a function should be intercepted can add a bit
+of time to the creation of the object. If the memory lifetime is used, that
+performance hit will only occur once.
 
 #### Matchers
 The matcher predicate is a function that takes in two arguments:
@@ -465,9 +474,9 @@ function onlyValidate(instance, methodName) {
 	return methodName === 'validate';
 }
 
-//only intercept validate() if the instance is dirty
+//only intercept validate() on the UserRepository
 function conditionalValidate(instance, methodName) {
-	return instance.isDirty && methodName === 'validate';
+	return instance instanceof UserRepository && methodName === 'validate';
 }
 ```
 
@@ -538,7 +547,7 @@ function matchBar(instance, methodName) {
 
 var container = new Container()
 	.registerType(Foo)
-	.intercept(Foo, matchBar, logMethodCalls, addFoo).sync();
+	.intercept(matchBar, logMethodCalls, addFoo).sync();
 
 var foo = container.resolveSync(Foo);
 foo.bar();
@@ -557,7 +566,7 @@ So the example above could be configured more easily:
 ```javascript
 container = new Container()
 	.registerType(Foo)
-	.intercept(Foo, 'bar', logMethodCalls, addFoo).sync();
+	.intercept('bar', logMethodCalls, addFoo).sync();
 ```
 
 ### Asynchronous interception
@@ -618,7 +627,7 @@ var container = new Container()
 	.registerType(Foo)
 	.intercept(Foo, matchBar, logMethodCallsAsync).async();
 
-//note that aysnc interception is only for asynchronous methods
+//note that aysnc interception is only for asynchronous methods.
 //so you can still resolve synchronously and intercept asynchronously.
 
 container.resolveSync(Foo).bar('hello world', function(err, result) {
