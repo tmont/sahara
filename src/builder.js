@@ -11,7 +11,7 @@ function invokeCtor(ctor, handlerConfigs, args) {
 
 	//create a proxy object that can intercept function calls.
 	//eventually, it may do more than just functions, such as intercepting
-	//accessors.
+	//getters.
 	Object.keys(instance).forEach(function(key) {
 		var descriptor = Object.getOwnPropertyDescriptor(instance, key),
 			thunk = instance[key];
