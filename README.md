@@ -635,6 +635,34 @@ container.resolveSync(Foo).bar('hello world', function(err, result) {
 });
 ```
 
+It's important to note that matchers are applied to all registrations, so
+keep that in mind when mixing async and sync registrations. Sahara will ensure
+that only async call handlers or only sync call handlers will be used per
+function call, but since it doesn't know if the function itself is async,
+it'll simply assume that the first match determines whether it's asynchronous
+or not.
+
+For example, don't do this:
+
+```javascript
+function Foo() {
+	this.bar = function() {};
+}
+
+function asyncHandler(context, next) {
+	next(function() {
+		console.log('yay!');
+	});
+}
+
+var container = new Container()
+	.registerType(Foo)
+	.intercept('bar', asyncCallHandler).async();
+
+//synchronous call is going to use an async handler
+container.resolve(Foo).bar();
+```
+
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects
 depending on other objects.
