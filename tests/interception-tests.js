@@ -196,5 +196,63 @@ describe('Interception', function() {
 			resolved.bar('foo').should.equal('bar');
 			handlerInvoked.should.equal(true);
 		});
+
+		it('should execute multiple call handlers', function() {
+			function Foo() {
+				this.bar = function() {
+					return 'foo';
+				};
+			}
+
+			var invocations = 0;
+
+			function callHandler1(context, next) {
+				invocations++;
+				next();
+			}
+
+			function callHandler2(context, next) {
+				invocations++;
+				next();
+			}
+
+			new Container()
+				.registerType(Foo)
+				.intercept(Foo, function() { return true; }, callHandler1, callHandler2)
+				.resolveSync(Foo)
+				.bar();
+
+			invocations.should.equal(2);
+		});
+
+		it('should filter out calls by method name', function() {
+			function Foo() {
+				this.bar = function() {};
+				this.foo = function() {};
+			}
+
+			var invocations = 0;
+
+			function callHandler(context, next) {
+				invocations++;
+				next();
+			}
+
+			function matcher(instance, methodName) {
+				instance.should.be.instanceOf(Foo);
+				return methodName === 'bar';
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(Foo, matcher, callHandler)
+				.intercept(Foo, function() { return false; }, callHandler)
+				.resolveSync(Foo);
+
+			resolved.bar();
+			resolved.foo();
+
+			invocations.should.equal(1);
+		});
 	});
 });
