@@ -544,6 +544,22 @@ var foo = container.resolveSync(Foo);
 foo.bar();
 ```
 
+### Signature shortcuts
+The `matcher` argument accepts other things besides a function.
+
+* If you give it a string, it will only intercept methods with that name
+* If you give it something that's not a function or a string, it will
+  convert it to a boolean, and either match everything or nothing.
+	* truthy values (`!!value === true`) match everything
+	* falsey values (`!!value === false`) match nothing
+
+So the example above could be configured more easily:
+```javascript
+container = new Container()
+	.registerType(Foo)
+	.intercept(Foo, 'bar', logMethodCalls, addFoo).sync();
+```
+
 ### Asynchronous interception
 All you've seen so far is synchronous interception. Asynchronous interception
 is a little tricky. Since Sahara simply wraps the original function call,
