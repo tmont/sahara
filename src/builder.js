@@ -25,26 +25,27 @@ function invokeCtor(ctor, interceptors, args) {
 			return;
 		}
 
-		var handlers = [];
+		var interceptionData;
 		for (var i = 0; i < interceptors.length; i++) {
 			if (interceptors[i].predicate(instance, key)) {
-				[].push.apply(handlers, interceptors[i].handlers);
+				interceptionData = interceptors[i];
+				break;
 			}
 		}
 
-		if (!handlers.length) {
+		if (!interceptionData) {
 			//no interceptors match this function
 			return;
 		}
 
-		var interceptor = new Interceptor(handlers);
+		var interceptor = new Interceptor(interceptionData.handlers);
 
 		//redefine the property
 		Object.defineProperty(instance, key, {
 			writable: false,
 			value: function() {
-				//TODO handle async functions
-				return interceptor.handleCallSync(instance, key, [].slice.call(arguments), thunk);
+				var methodName = 'handleCall' + (interceptionData.isAsync ? '' : 'Sync');
+				return interceptor[methodName](instance, key, [].slice.call(arguments), thunk);
 			}
 		});
 	});
