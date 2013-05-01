@@ -8,6 +8,30 @@ describe('Interception', function() {
 		return true;
 	}
 
+	it('should not override non-configurable functions', function() {
+		function Foo() {
+			Object.defineProperty(this, 'bar', {
+				value: function() {
+					return 'baz';
+				}
+			});
+		}
+
+		var handlerInvoked = false;
+		function callHandler(context, next) {
+			handlerInvoked = true;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(Foo, always, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar().should.equal('baz');
+		handlerInvoked.should.equal(false, 'call handler should not have been invoked');
+	});
+
 	describe('synchronously', function() {
 		it('should return value', function() {
 			function Foo() {
