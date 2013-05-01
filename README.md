@@ -430,7 +430,7 @@ an error, perform extra logging, etc.
 Interception in JavaScript is accomplished by defining a non-writable property
 that wraps a function call. So, if your method is
 [not configurable](https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor#Description)
-then it *not* be intercepted.
+then it will *not* be intercepted.
 
 Note that currently only [types](#registering-a-type) can be intercepted. This
 may change in the future.
