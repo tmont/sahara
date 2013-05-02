@@ -32,6 +32,29 @@ describe('Interception', function() {
 		handlerInvoked.should.equal(false, 'call handler should not have been invoked');
 	});
 
+	it('should intercept methods on the prototype', function() {
+		function Foo() {}
+
+		Foo.prototype = {
+			bar: function() {}
+		};
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var resolved = new Container()
+			.registerType(Foo)
+			.intercept(always, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		invocations.should.equal(1);
+	});
+
 	it('should allow explicit method name as matcher', function() {
 		function Foo() {
 			this.bar = function() {};

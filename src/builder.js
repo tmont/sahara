@@ -12,17 +12,18 @@ function invokeCtor(ctor, handlerConfigs, args) {
 	//create a proxy object that can intercept function calls.
 	//eventually, it may do more than just functions, such as intercepting
 	//getters.
-	Object.keys(instance).forEach(function(key) {
+	for (var key in instance) {
 		var descriptor = Object.getOwnPropertyDescriptor(instance, key),
 			thunk = instance[key];
 
+		//not able to override this value, carry on
 		if (descriptor && !descriptor.configurable) {
-			return;
+			continue;
 		}
 
 		//only intercept function calls (for now)
 		if (typeof(thunk) !== 'function') {
-			return;
+			continue;
 		}
 
 		var isAsync;
@@ -37,7 +38,7 @@ function invokeCtor(ctor, handlerConfigs, args) {
 
 		if (!matchingConfigs.length) {
 			//no handlers match this function
-			return;
+			continue;
 		}
 
 		var handlers = [];
@@ -45,17 +46,23 @@ function invokeCtor(ctor, handlerConfigs, args) {
 			[].push.apply(handlers, data.handlers);
 		});
 
-		var interceptor = new Interceptor(handlers);
-
 		//redefine the property
 		Object.defineProperty(instance, key, {
 			writable: false,
-			value: function() {
-				var methodName = 'handleCall' + (isAsync ? '' : 'Sync');
-				return interceptor[methodName](instance, key, [].slice.call(arguments), thunk);
-			}
+			value: (function(isAsync, methodName, thunk) {
+				var interceptor = new Interceptor(handlers);
+				return function() {
+					var handleCall = 'handleCall' + (isAsync ? '' : 'Sync');
+					return interceptor[handleCall](
+						instance,
+						methodName,
+						[].slice.call(arguments),
+						thunk
+					);
+				};
+			}(isAsync, key, thunk))
 		});
-	});
+	}
 
 	return instance;
 }
