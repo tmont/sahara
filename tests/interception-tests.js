@@ -57,10 +57,8 @@ describe('Interception', function() {
 
 	it('should match everything if matcher === true', function() {
 		function Foo() {
-			this.bar = function() {
-			};
-			this.foo = function() {
-			};
+			this.bar = function() {};
+			this.foo = function() {};
 		}
 
 		var invocations = 0;
@@ -82,10 +80,8 @@ describe('Interception', function() {
 
 	it('should match everything if matcher is truthy and not a string', function() {
 		function Foo() {
-			this.bar = function() {
-			};
-			this.foo = function() {
-			};
+			this.bar = function() {};
+			this.foo = function() {};
 		}
 
 		var invocations = 0;
