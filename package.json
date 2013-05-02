@@ -7,6 +7,12 @@
 		"lib": "src"
 	},
 
+	"files": [
+		"src",
+		"index.js",
+		"README.md"
+	],
+
 	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
 	"repository": {
 		"type": "git",
