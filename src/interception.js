@@ -17,6 +17,10 @@ Interceptor.prototype = {
 			var handler = handlers[index];
 			return function() {
 				if (!handler) {
+					if (context.error) {
+						return;
+					}
+
 					try {
 						context.returnValue = thunk.apply(instance, context.arguments);
 					} catch (e) {
@@ -53,6 +57,19 @@ Interceptor.prototype = {
 			var handler = handlers[index];
 			return function(callback) {
 				if (!handler) {
+					function runCallbacks(extraArgs) {
+						//this can modify the context, so it must come before we
+						//set callbackArgs
+						callback && callback();
+
+						var callbackArgs = [ context.error, context.returnValue ]
+							.concat(extraArgs || []);
+
+						//ugh...
+						prevCallback && prevCallback();
+						userCallback && userCallback.apply(null, callbackArgs);
+					}
+
 					var args = context.arguments,
 						userCallback;
 					if (args.length >= arity) {
@@ -64,6 +81,12 @@ Interceptor.prototype = {
 						}
 					}
 
+					//if error is set, don't execute
+					if (context.error) {
+						runCallbacks();
+						return;
+					}
+
 					args.push(function(err, result) {
 						if (err) {
 							context.error = err;
@@ -72,16 +95,7 @@ Interceptor.prototype = {
 							context.returnValue = result;
 						}
 
-						//this can modify the context, so it must come before we
-						//set callbackArgs
-						callback && callback();
-
-						var callbackArgs = [ context.error, context.returnValue ]
-							.concat([].slice.call(arguments).slice(2));
-
-						//ugh...
-						prevCallback && prevCallback();
-						userCallback && userCallback.apply(null, callbackArgs);
+						runCallbacks([].slice.call(arguments, 2));
 					});
 
 					thunk.apply(instance, args);

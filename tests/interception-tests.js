@@ -577,6 +577,29 @@ describe('Interception', function() {
 
 			invocations.should.equal(1);
 		});
+
+		it('should not execute method if error is set', function() {
+			var barCalled = false;
+
+			function Foo() {
+				this.bar = function() {
+					barCalled = true;
+				};
+			}
+
+			function callHandler(context, next) {
+				context.error = new Error('NOPE.');
+				next();
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(always, callHandler).sync()
+				.resolveSync(Foo);
+
+			(function() { resolved.bar(); }).should.throwError('NOPE.');
+			barCalled.should.equal(false);
+		});
 	});
 
 	describe('asynchronously', function() {
@@ -892,6 +915,34 @@ describe('Interception', function() {
 				invocation2Next.should.equal(true, 'next() callback in second call handler not executed');
 				invocation3.should.equal(true);
 				invocation3Next.should.equal(true, 'next() callback in third call handler not executed');
+				done();
+			});
+		});
+
+		it('should not execute method if error is set', function(done) {
+			var barCalled = false;
+
+			function Foo() {
+				this.bar = function(callback) {
+					barCalled = true;
+					callback();
+				};
+			}
+
+			function callHandler(context, next) {
+				context.error = new Error('NOPE.');
+				next();
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(always, callHandler).async()
+				.resolveSync(Foo);
+
+			resolved.bar(function(err) {
+				err.should.be.instanceOf(Error);
+				err.should.have.property('message', 'NOPE.');
+				barCalled.should.equal(false);
 				done();
 			});
 		});
