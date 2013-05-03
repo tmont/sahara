@@ -495,7 +495,8 @@ It is a function that takes two arguments:
 You **MUST** call `next()` *once and only once* somewhere in your call handler,
 to make sure the handler chain completes. If you have multiple call handlers
 defined, it will invoke the next one. Otherwise, it will invoke the original
-method.
+method. However, if `context.error` is set, then the original method will *not*
+be invoked.
 
 ```javascript
 //log the signature of the method and return value
