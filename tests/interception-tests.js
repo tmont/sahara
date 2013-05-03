@@ -946,5 +946,30 @@ describe('Interception', function() {
 				done();
 			});
 		});
+
+		it('should pass extra arguments back to callback', function(done) {
+			function Foo() {
+				this.bar = function(callback) {
+					callback(null, 'foo', 'bar', 'baz');
+				};
+			}
+
+			function callHandler(context, next) {
+				next();
+			}
+
+			var resolved = new Container()
+				.registerType(Foo)
+				.intercept(always, callHandler).async()
+				.resolveSync(Foo);
+
+			resolved.bar(function(err, foo, bar, baz) {
+				should.not.exist(err);
+				foo.should.equal('foo');
+				bar.should.equal('bar');
+				baz.should.equal('baz');
+				done();
+			});
+		});
 	});
 });
