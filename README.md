@@ -493,7 +493,7 @@ that wraps a function call. So, if your method is
 then it will *not* be intercepted.
 
 Note that currently only [types](#registering-a-type) can be intercepted. This
-may change in the future.
+may be expanded to other registrations in the future.
 
 ### Usage
 There are three components to configuring registration:
