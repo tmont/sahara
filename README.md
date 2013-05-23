@@ -306,7 +306,7 @@ lifetime of the object.
 
 The default lifetime is the `TransientLifetime`, which means that every time
 you call `resolve()` Sahara will pretend like it's never seen this type
-before and run the object building sequence every time.
+before and run the object building sequence each time.
 
 The `MemoryLifetime` will store the
 object instance in memory, and reuse that instance every time the container
