@@ -69,7 +69,8 @@ sahara.inject = {
 
 sahara.lifetime = {
 	transient: function() {},
-	memory: function() {}
+	memory: function() {},
+	external: function(manager) {}
 };
 ```
 
