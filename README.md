@@ -50,6 +50,7 @@ Container.prototype = {
 
 	resolve: function(key, callback) {}
 	resolveSync: function(key) {},
+	tryResolveSync: function(key) {},
 
 	inject: function(instance, key, callback) {}
 	injectSync: function(instance[, key]) {},

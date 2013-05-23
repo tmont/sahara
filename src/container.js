@@ -240,6 +240,19 @@ Container.prototype = {
 	},
 
 	/**
+	 * Same as resolveSync(), but won't ever throw
+	 * @param key
+	 * @return {*} The resolved object, or undefined if the key doesn't exist
+	 */
+	tryResolveSync: function(key) {
+		try {
+			return this.resolveSync(key);
+		} catch (e) {
+			return undefined;
+		}
+	},
+
+	/**
 	 * Performs injection on an object
 	 *
 	 * @param {*} instance The object to perform injection on

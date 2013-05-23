@@ -10,6 +10,13 @@ describe('Container', function() {
 			.throwError('Nothing with key "Foo" is registered in the container');
 	});
 
+	it('should not throw if key does not exist for tryResolveSync()', function() {
+		(function() {
+			var resolved = new Container().tryResolveSync('foo');
+			should.strictEqual(resolved, undefined);
+		}).should.not.throwError();
+	});
+
 	describe('resolve signature shortcuts', function() {
 		it('should resolve from constructor instead of key', function() {
 			function Foo() {}
