@@ -17,6 +17,16 @@ describe('Container', function() {
 		}).should.not.throwError();
 	});
 
+	it('should determine if something is registered', function() {
+		function foo() {}
+
+		var container = new Container().registerType(foo);
+
+		container.isRegistered('foo').should.equal(true);
+		container.isRegistered(foo).should.equal(true);
+		container.isRegistered('bar').should.equal(false);
+	});
+
 	describe('resolve signature shortcuts', function() {
 		it('should resolve from constructor instead of key', function() {
 			function Foo() {}

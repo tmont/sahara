@@ -157,6 +157,19 @@ Container.prototype = {
 	},
 
 	/**
+	 * Determines if something is registered with the given key
+	 * @param {String|Function} key The resolution key or constructor
+	 * @return {Boolean}
+	 */
+	isRegistered: function(key) {
+		if (typeof(key) === 'function') {
+			key = getKeyFromCtor(key);
+		}
+
+		return !!this.registrations[key];
+	},
+
+	/**
 	 * Resolves a type to an instance
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve

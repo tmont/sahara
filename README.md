@@ -17,6 +17,7 @@ calls.
 			* [Named functions](#named-functions)
 			* [Anonymous functions](#anonymous-functions)
 		* [Deferred registration with factories](#registering-a-factory)
+		* [Determining if something is registered](#determining-if-something-is-registered)
 	* [Asynchronous resolution](#asynchronous-resolution)
 	* [Handling cyclic dependencies](#cyclic-dependencies)
 	* [Lifetime management](#lifetime-management)
@@ -47,6 +48,8 @@ Container.prototype = {
 
 	registerFactory: (factory[, options]) {},
 	registerFactory: (factory[, key, lifetime, injection, injection...]) {},
+
+	isRegistered: function(key) {},
 
 	resolve: function(key, callback) {}
 	resolveSync: function(key) {},
@@ -219,6 +222,19 @@ container.registerFactory(function(container) {
 }, 'MyKey');
 
 container.resolveSync('MyKey');
+```
+
+### Determining if something is registered
+Use the `container.isRegistered()` function.
+
+```javascript
+function foo() {}
+
+container.register(foo);
+
+console.log(container.isRegistered(foo));   //true
+console.log(container.isRegistered('foo')); //true
+console.log(container.isRegistered('bar')); //false
 ```
 
 ### Asynchronous resolution
