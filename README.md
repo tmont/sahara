@@ -292,7 +292,7 @@ The default lifetime is the `TransientLifetime`, which means that every time
 you call `resolve()` Sahara will pretend like it's never seen this type
 before and run the object building sequence every time.
 
-The other bundled lifetime is the `MemoryLifetime`, which will store the
+The `MemoryLifetime` will store the
 object instance in memory, and reuse that instance every time the container
 attempts to resolve that type. This is useful when you have an object
 with an expensive construction time (e.g. a database connection) that
@@ -306,6 +306,49 @@ function DbConnection() {
 }
 
 container.registerType(DbConnection, { lifetime: lifetime.memory() });
+```
+
+The `ExternallyManagedLifetime` puts the onus of object management on the
+client (i.e. you). This is useful for managing something that should exist
+temporarily. For example, if you were writing a web application and you only
+wanted your database connection to exist for the duration of the request,
+you could do something like this:
+
+```javascript
+// let's use express for this example
+var express = require('express'),
+	app = express(),
+	sahara = require('sahara'),
+	manager = new sahara.ObjectManager(),
+	createConnection = function() { /* ... */ ),
+	container = new sahara.Container();
+
+//on each new request, before anything else, we'll make sure the object manager
+//is purged when the request is completed; this ensures that a fresh database
+//connection is made for every request
+app.use(function(req, res, next) {
+	res.on('finish', function() {
+		manager.purge();
+	});
+
+	next();
+});
+
+//add an object to the container
+app.use(function(req, res, next) {
+	container.registerFactory(createConnection, 'DbConnection', sahara.lifetime.external(manager));
+	next();
+});
+
+app.use(app.router);
+
+//and now we can fetch it in the normal way
+app.get('/hello', function(req, res, next) {
+	var conn = container.resolveSync('DbConnection');
+	conn.query('SELECT * FROM foo LIMIT 1', function(err, result) {
+		res.send(result[0]);
+	});
+});
 ```
 
 ### Injection
