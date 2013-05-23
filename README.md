@@ -230,7 +230,7 @@ Use the `container.isRegistered()` function.
 ```javascript
 function foo() {}
 
-container.register(foo);
+container.registerType(foo);
 
 console.log(container.isRegistered(foo));   //true
 console.log(container.isRegistered('foo')); //true
