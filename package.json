@@ -22,11 +22,11 @@
 	"dependencies": {
 		"dep-graph": "1.1.0",
 		"node-uuid": "1.4.0",
-		"async": "0.2.8"
+		"async": "0.2.9"
 	},
 
 	"devDependencies": {
-		"mocha": "1.9.0",
+		"mocha": "1.11.0",
 		"should": "1.2.2"
 	},
 
