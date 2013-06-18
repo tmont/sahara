@@ -96,7 +96,7 @@ ObjectBuilder.prototype = {
 
 	newInstance: function(typeInfo, handlerConfigs, callback) {
 		var self = this;
-		async.map(getParams(typeInfo), function(typeData, next) {
+		async.mapSeries(getParams(typeInfo), function(typeData, next) {
 			self.resolver(typeData.type, function(err, param) {
 				process.nextTick(function() {
 					next(err, param);
