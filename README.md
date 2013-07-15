@@ -26,6 +26,7 @@ calls.
 		* [Method injection](#method-injection)
 		* [Manual injection](#manual-injection)
 	* [Interception](#interception)
+	* [Creating child containers](#creating-child-containers)
 * [Real world example](#in-the-real-world)
 * [Development](#development)
 
@@ -58,7 +59,9 @@ Container.prototype = {
 	inject: function(instance, key, callback) {}
 	injectSync: function(instance[, key]) {},
 
-	intercept: function(matcher, callHandler[, callHandler...]) {}
+	intercept: function(matcher, callHandler[, callHandler...]) {},
+
+	createChildContainer: function() {}
 };
 
 sahara.inject = {
@@ -733,6 +736,23 @@ var container = new Container()
 //synchronous call is going to use an async handler
 container.resolve(Foo).bar();
 ```
+
+### Creating child containers
+Occasionally the need arises to create a new container that inherits all of the
+configurations from another container. This can be accomplished with the
+`createChildContainer()` function.
+
+```javascript
+function Foo() {}
+
+var parent = new Container().registerType(Foo),
+	child = parent.createChildContainer();
+
+var fooInstance = child.resolveSync(Foo); // instance of Foo
+```
+
+Anything you do on the parent container will **not** affect the state of the
+child container, and vice versa. They are completely independent.
 
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects

@@ -519,4 +519,99 @@ describe('Container', function() {
 			});
 		});
 	});
+
+	describe('child containers', function() {
+		it('should inherit registrations from parent', function() {
+			function Foo() {}
+			var parent = new Container().registerType(Foo),
+				child = parent.createChildContainer();
+
+			child.resolveSync(Foo).should.be.instanceOf(Foo);
+
+			parent.registerInstance({}, 'Bar');
+
+			(function() { child.resolveSync('Bar'); })
+				.should.throwError('Nothing with key "Bar" is registered in the container');
+		});
+
+		it('should not affect parent container\'s registrations', function() {
+			function Foo() {}
+
+			var parent = new Container().registerType(Foo),
+				child = parent.createChildContainer();
+
+			child.resolveSync(Foo).should.be.instanceOf(Foo);
+
+			child.registerInstance({}, 'Bar');
+
+			(function() { parent.resolveSync('Bar'); })
+				.should.throwError('Nothing with key "Bar" is registered in the container');
+		});
+
+		it('should inherit dependency graph from parent', function() {
+			function Bar(/** Baz */bar) {}
+			function Baz(/** Bar */baz) {}
+
+			var parent = new Container().registerType(Bar),
+				child = parent.createChildContainer();
+
+			(function() { child.registerType(Baz); })
+				.should.throwError('Cyclic dependency from Bar to Baz');
+		});
+
+		it('should not affect parent\'s dependency graph', function() {
+			function Bar(/** Baz */bat) {}
+			function Baz() {}
+
+			var parent = new Container().registerType(Bar),
+				child = parent.createChildContainer()
+					.registerType(Baz);
+
+			(function() { parent.resolveSync(Bar); })
+				.should.throwError('Nothing with key "Baz" is registered in the container');
+		});
+
+		it('should inherit interception configurations from parent', function() {
+			function Foo() {}
+			Foo.prototype.bar = function() {};
+
+			var handlerInvoked = false;
+			function handler(context, next) {
+				handlerInvoked = true;
+				next();
+			}
+
+			var parent = new Container()
+					.registerType(Foo)
+					.intercept([ Foo, 'bar' ], handler).sync(),
+				child = parent.createChildContainer();
+
+			child.resolveSync(Foo).bar();
+			handlerInvoked.should.equal(true);
+		});
+
+		it('should not affect parent\'s interception configurations', function() {
+			function Foo() {}
+
+			Foo.prototype.bar = function() {};
+			Foo.prototype.baz = function() {};
+
+			var handlerInvoked = false;
+
+			function handler(context, next) {
+				handlerInvoked = true;
+				next();
+			}
+
+			var parent = new Container()
+					.registerType(Foo)
+					.intercept([ Foo, 'bar' ], function(_, next) { next(); }).sync(),
+				child = parent.createChildContainer()
+					.intercept([ Foo, 'baz' ], handler).sync();
+
+			parent.resolveSync(Foo).baz();
+			handlerInvoked.should.equal(false);
+		});
+	});
+
 });

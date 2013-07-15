@@ -353,6 +353,30 @@ Container.prototype = {
 				return container;
 			}
 		};
+	},
+
+	/**
+	 * Creates a clone of the container in its current state
+	 *
+	 * @returns {Container}
+	 */
+	createChildContainer: function() {
+		var childContainer = new Container(),
+			self = this;
+
+		Object.keys(this.registrations).forEach(function(key) {
+			childContainer.registrations[key] = self.registrations[key];
+		});
+
+		Object.keys(this.graph.map).forEach(function(key) {
+			childContainer.graph.map[key] = self.graph.map[key];
+		});
+
+		this.handlerConfigs.forEach(function(config) {
+			childContainer.handlerConfigs.push(config);
+		});
+
+		return childContainer;
 	}
 };
 
