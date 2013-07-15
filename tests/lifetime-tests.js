@@ -42,6 +42,21 @@ describe('Lifetime', function() {
 		should.not.exist(external.fetch());
 	});
 
+	it('should store and fetch using externally managed object with injected collection', function() {
+		var items = {
+			foo: 'bar'
+		};
+		var manager = new ObjectManager(items),
+			external = lifetime.external(manager);
+
+		external.store('foo');
+		external.fetch().should.equal('foo');
+		manager.purge();
+		should.not.exist(external.fetch());
+
+		items.should.have.property('foo', 'bar');
+	});
+
 	it('should require instance of ObjectManager for externally managed lifetime', function() {
 		(function() { lifetime.external({}); })
 			.should.throwError('An ObjectManager instance must be provided');

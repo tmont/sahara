@@ -1,8 +1,9 @@
 var EventEmitter = require('events').EventEmitter,
 	util = require('util');
 
-function ObjectManager() {
-	this.items = {};
+function ObjectManager(collection) {
+	this.items = collection || {};
+	this.keys = [];
 }
 
 util.inherits(ObjectManager, EventEmitter);
@@ -14,11 +15,17 @@ util._extend(ObjectManager.prototype, {
 
 	add: function(key, object) {
 		this.items[key] = object;
+		this.keys.push(key);
 		this.emit('add', key, object);
 	},
 
 	purge: function() {
-		this.items = {};
+		var self = this;
+		this.keys.forEach(function(key) {
+			delete self.items[key];
+		});
+
+		this.keys = [];
 		this.emit('purge');
 	}
 });

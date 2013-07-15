@@ -30,7 +30,9 @@ function ExternallyManagedLifetime(manager) {
 	}
 
 	this.manager = manager;
-	this.key = uuid.v4();
+	do {
+		this.key = uuid.v4();
+	} while (this.manager.get(this.key));
 }
 
 ExternallyManagedLifetime.prototype = {

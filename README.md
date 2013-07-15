@@ -330,46 +330,43 @@ container.registerType(DbConnection, { lifetime: lifetime.memory() });
 
 The `ExternallyManagedLifetime` puts the onus of object management on the
 client (i.e. you). This is useful for managing something that should exist
-temporarily. For example, if you were writing a web application and you only
-wanted your database connection to exist for the duration of the request,
-you could do something like this:
+temporarily.
 
 ```javascript
-// let's use express for this example
-var express = require('express'),
-	app = express(),
-	sahara = require('sahara'),
-	manager = new sahara.ObjectManager(),
-	createConnection = function() { /* ... */ ),
+var manager = new sahara.ObjectManager(),
 	container = new sahara.Container();
 
-//on each new request, before anything else, we'll make sure the object manager
-//is purged when the request is completed; this ensures that a fresh database
-//connection is made for every request
-app.use(function(req, res, next) {
-	res.on('finish', function() {
-		manager.purge();
-	});
-
-	next();
-});
-
-//add an object to the container
-app.use(function(req, res, next) {
-	container.registerFactory(createConnection, 'DbConnection', sahara.lifetime.external(manager));
-	next();
-});
-
-app.use(app.router);
-
-//and now we can fetch it in the normal way
-app.get('/hello', function(req, res, next) {
-	var conn = container.resolveSync('DbConnection');
-	conn.query('SELECT * FROM foo LIMIT 1', function(err, result) {
-		res.send(result[0]);
-	});
-});
+container.registerInstance({ foo: 'bar' }, 'Foo', sahara.lifetime.external(manager));
+container.registerInstance({ foo: 'baz' }, 'Bar', sahara.lifetime.external(manager));
 ```
+
+You can also provide a collection to the `ObjectManager`, and all of the managed instances
+will be stored in that object.
+
+```javascript
+var items = {
+		foo: 'bar';
+	},
+	manager = new sahara.ObjectManager(items);
+
+container.registerInstance('hello world', 'Foo', sahara.lifetime.external(manager));
+
+var instance = container.resolveSync('Foo');
+console.log(items);
+/*
+{ foo: 'bar',
+  '95ae7c41-b413-48a9-9712-5d1756d6cf92': 'hello world' }
+*/
+```
+
+To purge the `ObjectManager`'s stored values, call `purge()`:
+
+```javascript
+manager.purge();
+```
+
+The `ObjectManager` is an `EventEmitter` and emits `add` when a new object is
+added, and `purge` when the manager is purged.
 
 ### Injection
 By default, Sahara performs *constructor injection*. That is, it resolves
