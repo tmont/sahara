@@ -571,6 +571,11 @@ describe('Container', function() {
 				.should.throwError('Nothing with key "Baz" is registered in the container');
 		});
 
+		it('should set parent', function() {
+			var parent = new Container();
+			parent.createChildContainer().parent.should.equal(parent);
+		});
+
 		it('should inherit interception configurations from parent', function() {
 			function Foo() {}
 			Foo.prototype.bar = function() {};

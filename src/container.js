@@ -36,7 +36,8 @@ function FactoryRegistration(name, lifetime, injections, factory) {
 	this.factory = factory;
 }
 
-function Container() {
+function Container(parent) {
+	this.parent = parent || null;
 	this.registrations = {};
 	this.handlerConfigs = [];
 	this.graph = new DependencyGraph();
@@ -361,7 +362,7 @@ Container.prototype = {
 	 * @returns {Container}
 	 */
 	createChildContainer: function() {
-		var childContainer = new Container(),
+		var childContainer = new Container(this),
 			self = this;
 
 		Object.keys(this.registrations).forEach(function(key) {
