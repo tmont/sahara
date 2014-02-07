@@ -50,8 +50,7 @@ Interceptor.prototype = {
 				arguments: args,
 				error: null,
 				returnValue: undefined
-			},
-			arity = thunk.length;
+			};
 
 		function runNestedCallbacks(next, callback) {
 			return function(done) {
@@ -71,7 +70,6 @@ Interceptor.prototype = {
 			};
 		}
 
-
 		function getNextHandler(index, next) {
 			var handler = handlers[index];
 			return function(callback) {
@@ -81,12 +79,11 @@ Interceptor.prototype = {
 
 					var args = context.arguments,
 						userCallback;
-					if (args.length >= arity) {
-						//assume last argument is the callback
-						if (typeof(args[args.length - 1]) === 'function') {
-							//last argument is a callback, we need to wrap it
-							userCallback = args.pop();
-						}
+
+					//assume last argument is the callback
+					if (typeof(args[args.length - 1]) === 'function') {
+						//last argument is a callback, we need to wrap it
+						userCallback = args.pop();
 					}
 
 					function runCallbacks(extraArgs) {

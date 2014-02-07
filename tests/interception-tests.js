@@ -842,12 +842,14 @@ describe('Interception', function() {
 				enoughArgsInvoked = false;
 
 			function callHandler1(context, next) {
-				if (context.arguments.length > 1) {
-					enoughArgsInvoked = true;
-				} else {
-					notEnoughArgsInvoked = true;
-				}
-				next();
+				next(function(done) {
+					if (context.arguments.length > 1) {
+						enoughArgsInvoked = true;
+					} else {
+						notEnoughArgsInvoked = true;
+					}
+					done();
+				});
 			}
 
 			var resolved = new Container()
