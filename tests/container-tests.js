@@ -189,6 +189,18 @@ describe('Container', function() {
 				.throwError('A resolution key must be given if a named function is not');
 		});
 
+		it('should report attempts at registering objects', function() {
+			function Foo() {}
+			(function() { new Container().registerType(new Foo()) })
+				.should
+				.throwError('Constructor must be a function, got instance of Foo');
+		});
+
+		it('should report attempts at registering null', function() {
+			(function() { new Container().registerType(null); }).should.throwError('Constructor must be a function, got null');
+			(function() { new Container().registerType(); }).should.throwError('Constructor must be a function, got null');
+		});
+
 		it('should use specified key even if named function given', function() {
 			function Foo() {}
 			var instance = new Container()

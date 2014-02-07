@@ -1,7 +1,17 @@
 exports.getTypeInfo = function(ctor, key, ignoreSignature) {
+	if (typeof(ctor) !== 'function') {
+		var message = ctor && ctor.constructor
+			? 'instance of ' + ctor.constructor.name
+			: (!ctor ? 'null' : typeof(ctor));
+		throw new Error('Constructor must be a function, got ' + message);
+	}
+
 	var data = /^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/.exec(ctor.toString());
 	if (!data) {
-		throw new Error('Unable to parse function definition: ' + ctor.toString());
+		throw new Error(
+			'Unable to parse function definition: ' + ctor.toString() + '. If ' +
+			'this is a valid constructor, please open an issue with the developers.'
+		);
 	}
 
 	var typeName = key || data[1],
