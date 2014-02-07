@@ -53,36 +53,53 @@ Interceptor.prototype = {
 			},
 			arity = thunk.length;
 
-		function next(index, prevCallback) {
+		function runNestedCallbacks(next, callback) {
+			return function(done) {
+				if (next) {
+					next(function() {
+						if (callback) {
+							callback(done);
+						} else {
+							done && done();
+						}
+					});
+				} else if (callback) {
+					callback(done);
+				} else if (done) {
+					done();
+				}
+			};
+		}
+
+
+		function getNextHandler(index, next) {
 			var handler = handlers[index];
 			return function(callback) {
 				if (!handler) {
-					function runCallbacks(extraArgs) {
-						//this can modify the context, so it must come before we
-						//set callbackArgs
-						callback && callback();
-
-						var callbackArgs = [ context.error, context.returnValue ]
-							.concat(extraArgs || []);
-
-						//ugh...
-						prevCallback && prevCallback();
-						userCallback && userCallback.apply(null, callbackArgs);
-					}
+					//terminating condition, all handlers have been executed, so
+					//run the original function
 
 					var args = context.arguments,
 						userCallback;
 					if (args.length >= arity) {
-						//all arguments accounted for, assume the last argument
-						//is a callback
+						//assume last argument is the callback
 						if (typeof(args[args.length - 1]) === 'function') {
 							//last argument is a callback, we need to wrap it
 							userCallback = args.pop();
 						}
 					}
 
-					//if error is set, don't execute
+					function runCallbacks(extraArgs) {
+						function runUserCallback() {
+							var callbackArgs = [ context.error, context.returnValue ].concat(extraArgs || []);
+							userCallback && userCallback.apply(null, callbackArgs);
+						}
+
+						runNestedCallbacks(next, callback)(runUserCallback);
+					}
+
 					if (context.error) {
+						//don't run original function if the error is already set
 						runCallbacks();
 						return;
 					}
@@ -102,14 +119,11 @@ Interceptor.prototype = {
 					return;
 				}
 
-				handler(context, next(index + 1, function() {
-					prevCallback && prevCallback();
-					callback && callback();
-				}));
+				handler(context, getNextHandler(index + 1, runNestedCallbacks(next, callback)));
 			};
 		}
 
-		next(0)();
+		getNextHandler(0)();
 	}
 };
 

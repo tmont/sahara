@@ -670,9 +670,10 @@ describe('Interception', function() {
 
 			function callHandler(context, next) {
 				handlerInvoked = true;
-				next(function() {
+				next(function(done) {
 					context.should.have.property('error', error);
 					context.error = null;
+					done();
 				});
 			}
 
@@ -700,10 +701,11 @@ describe('Interception', function() {
 			var handlerInvoked = false;
 
 			function callHandler(context, next) {
-				next(function() {
+				next(function(done) {
 					handlerInvoked = true;
 					context.should.have.property('error', null);
 					context.error = error;
+					done();
 				});
 			}
 
@@ -729,10 +731,11 @@ describe('Interception', function() {
 			var handlerInvoked = false;
 
 			function callHandler(context, next) {
-				next(function() {
+				next(function(done) {
 					handlerInvoked = true;
 					context.should.have.property('returnValue', 'foo');
 					context.returnValue = 'bar';
+					done();
 				});
 			}
 
@@ -759,11 +762,12 @@ describe('Interception', function() {
 			var handlerInvoked = false;
 
 			function callHandler(context, next) {
-				next(function() {
+				next(function(done) {
 					handlerInvoked = true;
 					context.arguments.should.have.length(2);
 					context.arguments[0].should.equal('foo');
 					context.returnValue = 'bar';
+					done();
 				});
 			}
 
@@ -884,22 +888,25 @@ describe('Interception', function() {
 
 			function callHandler1(context, next) {
 				invocation1 = true;
-				next(function() {
+				next(function(done) {
 					invocation1Next = true;
+					done();
 				});
 			}
 
 			function callHandler2(context, next) {
 				invocation2 = true;
-				next(function() {
+				next(function(done) {
 					invocation2Next = true;
+					done();
 				});
 			}
 
 			function callHandler3(context, next) {
 				invocation3 = true;
-				next(function() {
+				next(function(done) {
 					invocation3Next = true;
+					done();
 				});
 			}
 

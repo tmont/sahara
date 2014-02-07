@@ -678,9 +678,21 @@ function logMethodCallsAsync(context, next) {
         context.arguments.map(function(arg) { return arg.toString(); }).join(',') + ')';
 
     console.log(message);
-    next(function() {
+    next(function(done) {
         console.log(message + ': ' + (context.error || context.returnValue));
+        done(); // <-- this is important!
     });
+}
+```
+
+If you don't need to do anything after the function is executed, simply call
+`next()` with no arguments.
+
+```javascript
+var count = 0;
+function incrementCounter(context, next) {
+	count++;
+	next();
 }
 ```
 
