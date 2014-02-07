@@ -9,8 +9,7 @@
 
 	"files": [
 		"src",
-		"index.js",
-		"README.md"
+		"index.js"
 	],
 
 	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
