@@ -881,49 +881,50 @@ describe('Interception', function() {
 				};
 			}
 
-			var invocation1 = false,
-				invocation1Next = false,
-				invocation2 = false,
-				invocation2Next = false,
-				invocation3 = false,
-				invocation3Next = false;
+			var invocation1 = 0,
+				invocation1Next = 0,
+				invocation2 = 0,
+				invocation2Next = 0,
+				invocation3 = 0,
+				invocation3Next = 0;
 
 			function callHandler1(context, next) {
-				invocation1 = true;
+				invocation1++;
 				next(function(done) {
-					invocation1Next = true;
+					invocation1Next++;
 					done();
 				});
 			}
 
 			function callHandler2(context, next) {
-				invocation2 = true;
+				invocation2++;
 				next(function(done) {
-					invocation2Next = true;
+					invocation2Next++;
 					done();
 				});
 			}
 
 			function callHandler3(context, next) {
-				invocation3 = true;
+				invocation3++;
 				next(function(done) {
-					invocation3Next = true;
+					invocation3Next++;
 					done();
 				});
 			}
 
 			var resolved = new Container()
 				.registerType(Foo)
-				.intercept(always, callHandler1, callHandler2, callHandler3).async()
+				.intercept(always, callHandler1, callHandler2).async()
+				.intercept(always, callHandler3).async()
 				.resolveSync(Foo);
 
 			resolved.bar(function() {
-				invocation1.should.equal(true);
-				invocation1Next.should.equal(true, 'next() callback in first call handler not executed');
-				invocation2.should.equal(true);
-				invocation2Next.should.equal(true, 'next() callback in second call handler not executed');
-				invocation3.should.equal(true);
-				invocation3Next.should.equal(true, 'next() callback in third call handler not executed');
+				invocation1.should.equal(1);
+				invocation1Next.should.equal(1, 'next() callback in first call handler not executed');
+				invocation2.should.equal(1);
+				invocation2Next.should.equal(1, 'next() callback in second call handler not executed');
+				invocation3.should.equal(1);
+				invocation3Next.should.equal(1, 'next() callback in third call handler not executed');
 				done();
 			});
 		});
