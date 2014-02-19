@@ -28,7 +28,6 @@ calls.
 	* [Interception](#interception)
 	* [Creating child containers](#creating-child-containers)
 	* [Events](#events)
-* [Real world example](#in-the-real-world)
 * [Development](#development)
 
 
@@ -804,106 +803,6 @@ container.builder
 		console.log('intercepting ' + instance.constructor.name + '.' + methodName);
 	});
 ```
-
-## In the real world
-Inversion of control containers are useful for easing the pain of objects
-depending on other objects.
-
-For example, say you had database/repository/whatever object that was
-used ubiquitously. In the old days, you would probably make it a singleton,
-and do something like `db.getInstance().query(...)`. But everybody knows
-that singletons are bad, so you should probably pass around the instance
-of your database object that gets used elsewhere. IoC containers help
-alleviate the mess that can come from trying to accomplish this.
-
-The setup:
-
-```javascript
-var connectionInfo = { host: 'localhost', port: 6379 },
-	viewEngine = require('jade'),
-	viewDirectory = __dirname + '/views';
-
-function DbConnection(/** DbConnectionInfo */info) {
-	this.conn = redis.createClient(info.port, info.host);
-}
-
-function DbFacade(/** DbConnection */conn) {
-	this.conn = conn;
-}
-
-DbFacade.prototype = {
-	insert: function(key, value, callback) {
-		this.conn.set(key, value, callback);
-	},
-
-	select: function(key, callback) {
-		this.conn.get(key, callback);
-	}
-};
-
-function ViewRenderer(/** ViewEngine */engine, /** ViewDirectory */dir) {
-	this.engine = engine;
-	this.dir = dir;
-}
-
-ViewRenderer.prototype = {
-	render: function(viewName, params) {
-		var renderer = this,
-			fileName = require('path').join(this.dir, viewName + '.jade');
-		fs.readFile(fileName, 'utf8', function(err, contents) {
-			if (err) {
-				throw err;
-			}
-
-			renderer.engine.compile(contents)(params);
-		});
-	}
-};
-
-//elsewhere, like in a controller or something
-function BlogController(/** DbFacade */ db, /** ViewRenderer */ renderer) {
-	this.db = db;
-	this.renderer = renderer;
-}
-
-BlogController.prototype = {
-	showPost: function(id) {
-		this.db.select('blog:post:' + id, function(err, result) {
-			if (err) {
-				this.renderer.render('error', err);
-				return;
-			}
-
-			this.renderer.render('post', result);
-		});
-	}
-};
-
-```
-
-Now, configure the container:
-```javascript
-var sahara = require('sahara');
-
-var container = new sahara.Container()
-	.registerInstance(viewDirectory, 'ViewDirectory')
-	.registerInstance(viewEngine, 'ViewEngine')
-	.registerInstance(connectionInfo, { key: 'DbConnectionInfo', lifetime: sahara.lifetime.memory() })
-	.registerType(DbConnection, { lifetime: sahara.lifetime.memory() })
-	.registerType(DbFacade)
-	.registerType(ViewRenderer)
-	.registerType(BlogController);
-```
-
-And now, to instantiate your controller, you simply do this:
-```javascript
-var controller = container.resolveSync(BlogController);
-controller.showPost(1);
-```
-
-So, the trade-off is that there is more up-front configuration, but
-much less manual management. Which is usually a very, very good
-trade-off.
 
 ## Development
 ```bash
