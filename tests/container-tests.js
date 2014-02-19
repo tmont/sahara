@@ -346,11 +346,26 @@ describe('Container', function() {
 			});
 		});
 
-		it('should resolve type with dependencies', function(done) {
+		it('should resolve type with dependencies and emit events', function(done) {
 			function Foo(/** Bar */bar) { this.bar = bar; }
 			function Bar() {}
 
-			var container = new Container()
+			var container = new Container();
+			var eResolved = 0,
+				resolving = 0,
+				registering = 0;
+
+			container.on('resolving', function() {
+				resolving++;
+			});
+			container.on('resolved', function() {
+				eResolved++;
+			});
+			container.on('registering', function() {
+				registering++;
+			});
+
+			container
 				.registerType(Foo)
 				.registerType(Bar);
 
@@ -359,6 +374,9 @@ describe('Container', function() {
 				resolved.should.be.instanceOf(Foo);
 				resolved.should.have.property('bar');
 				resolved.bar.should.be.instanceOf(Bar);
+				registering.should.equal(2);
+				eResolved.should.equal(2);
+				resolving.should.equal(2);
 				done();
 			});
 		});

@@ -2,7 +2,9 @@ var DependencyGraph = require('dep-graph'),
 	ObjectBuilder = require('./builder'),
 	lifetimes = require('./lifetime'),
 	async = require('async'),
-	util = require('./util');
+	util = require('util'),
+	EventEmitter = require('events').EventEmitter,
+	utils = require('./util');
 
 function createUnregisteredError(key) {
 	return new Error('Nothing with key "' + key + '" is registered in the container');
@@ -47,6 +49,8 @@ function Container(parent) {
 	);
 }
 
+util.inherits(Container, EventEmitter);
+
 function resolveSignatureToOptions(args) {
 	args = [].slice.call(args, 1);
 
@@ -72,7 +76,7 @@ function resolveSignatureToOptions(args) {
 	return options;
 }
 
-Container.prototype = {
+util._extend(Container.prototype, {
 	/**
 	 * Registers a type from a constructor
 	 *
@@ -85,9 +89,10 @@ Container.prototype = {
 	 */
 	registerType: function(ctor, key, lifetime, injections) {
 		var options = resolveSignatureToOptions(arguments);
-		var typeInfo = util.getTypeInfo(ctor, options.key),
+		var typeInfo = utils.getTypeInfo(ctor, options.key),
 			typeName = typeInfo.name;
 
+		this.emit('registering', typeName, 'type');
 		this.registrations[typeName] = new TypeRegistration(
 			typeName,
 			options.lifetime,
@@ -120,6 +125,7 @@ Container.prototype = {
 	registerInstance: function(instance, key, lifetime, injections) {
 		var options = resolveSignatureToOptions(arguments);
 		options.key = options.key || getKeyFromInstance(instance);
+		this.emit('registering', options.key, 'instance');
 		this.registrations[options.key] = new InstanceRegistration(
 			options.key,
 			options.lifetime,
@@ -148,6 +154,7 @@ Container.prototype = {
 			throw new Error('"options.key" must be passed to registerFactory()');
 		}
 
+		this.emit('registering', options.key, 'factory');
 		this.registrations[options.key] = new FactoryRegistration(
 			options.key,
 			options.lifetime,
@@ -181,6 +188,7 @@ Container.prototype = {
 			key = getKeyFromCtor(key);
 		}
 
+		this.emit('resolving', key);
 		var registration = this.registrations[key];
 		if (!registration) {
 			callback(createUnregisteredError(key));
@@ -189,6 +197,7 @@ Container.prototype = {
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
+			this.emit('resolved', key, existing);
 			callback(null, existing);
 			return;
 		}
@@ -205,6 +214,7 @@ Container.prototype = {
 					registration.lifetime.store(instance);
 				}
 
+				self.emit('resolved', key, instance);
 				callback(err, instance);
 			});
 		}
@@ -230,12 +240,14 @@ Container.prototype = {
 		}
 
 		var registration = this.registrations[key];
+		this.emit('resolving', key);
 		if (!registration) {
 			throw createUnregisteredError(key);
 		}
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
+			this.emit('resolved', key, existing);
 			return existing;
 		}
 
@@ -250,6 +262,7 @@ Container.prototype = {
 
 		this.injectSync(instance, key);
 		registration.lifetime.store(instance);
+		this.emit('resolved', key, instance);
 		return instance;
 	},
 
@@ -379,6 +392,6 @@ Container.prototype = {
 
 		return childContainer;
 	}
-};
+});
 
 module.exports = Container;

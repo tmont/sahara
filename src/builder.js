@@ -1,71 +1,9 @@
 var async = require('async'),
+	util = require('util'),
+	EventEmitter = require('events').EventEmitter,
 	Interceptor = require('./interception');
 
-function invokeCtor(ctor, handlerConfigs, args) {
-	var instance = Object.create(ctor.prototype);
-	ctor.apply(instance, args);
 
-	if (!handlerConfigs.length) {
-		return instance;
-	}
-
-	//create a proxy object that can intercept function calls.
-	//eventually, it may do more than just functions, such as intercepting
-	//getters.
-	for (var key in instance) {
-		var descriptor = Object.getOwnPropertyDescriptor(instance, key),
-			thunk = instance[key];
-
-		//not able to override this value, carry on
-		if (descriptor && !descriptor.configurable) {
-			continue;
-		}
-
-		//only intercept function calls (for now)
-		if (typeof(thunk) !== 'function') {
-			continue;
-		}
-
-		var isAsync;
-		var matchingConfigs = handlerConfigs.filter(function(data) {
-			var isMatch = data.matcher(instance, key);
-			if (isMatch && isAsync === undefined) {
-				isAsync = data.isAsync;
-			}
-
-			return isMatch && data.isAsync === isAsync;
-		});
-
-		if (!matchingConfigs.length) {
-			//no handlers match this function
-			continue;
-		}
-
-		var handlers = [];
-		matchingConfigs.forEach(function(data) {
-			[].push.apply(handlers, data.handlers);
-		});
-
-		//redefine the property
-		Object.defineProperty(instance, key, {
-			writable: false,
-			value: (function(isAsync, methodName, thunk) {
-				var interceptor = new Interceptor(handlers);
-				return function() {
-					var handleCall = 'handleCall' + (isAsync ? '' : 'Sync');
-					return interceptor[handleCall](
-						instance,
-						methodName,
-						[].slice.call(arguments),
-						thunk
-					);
-				};
-			}(isAsync, key, thunk))
-		});
-	}
-
-	return instance;
-}
 
 function getParams(typeInfo) {
 	var params = typeInfo.args;
@@ -85,16 +23,91 @@ function ObjectBuilder(resolver, resolverSync) {
 	this.resolverSync = resolverSync;
 }
 
-ObjectBuilder.prototype = {
+util.inherits(ObjectBuilder, EventEmitter);
+
+util._extend(ObjectBuilder.prototype, {
+	invokeCtor: function(ctor, handlerConfigs, args) {
+		var instance = Object.create(ctor.prototype),
+			self = this;
+
+		ctor.apply(instance, args);
+
+		if (!handlerConfigs.length) {
+			return instance;
+		}
+
+		//create a proxy object that can intercept function calls.
+		//eventually, it may do more than just functions, such as intercepting
+		//getters.
+		for (var key in instance) {
+			var descriptor = Object.getOwnPropertyDescriptor(instance, key),
+				thunk = instance[key];
+
+			//not able to override this value, carry on
+			if (descriptor && !descriptor.configurable) {
+				continue;
+			}
+
+			//only intercept function calls (for now)
+			if (typeof(thunk) !== 'function') {
+				continue;
+			}
+
+			var isAsync;
+			var matchingConfigs = handlerConfigs.filter(function(data) {
+				var isMatch = data.matcher(instance, key);
+				if (isMatch && isAsync === undefined) {
+					isAsync = data.isAsync;
+				}
+
+				return isMatch && data.isAsync === isAsync;
+			});
+
+			if (!matchingConfigs.length) {
+				//no handlers match this function
+				continue;
+			}
+
+			var handlers = [];
+			matchingConfigs.forEach(function(data) {
+				[].push.apply(handlers, data.handlers);
+			});
+
+			//redefine the property
+			Object.defineProperty(instance, key, {
+				writable: false,
+				value: (function(isAsync, methodName, thunk) {
+					var interceptor = new Interceptor(handlers);
+					return function() {
+						self.emit('intercepting', instance, methodName);
+						var handleCall = 'handleCall' + (isAsync ? '' : 'Sync');
+						return interceptor[handleCall](
+							instance,
+							methodName,
+							[].slice.call(arguments),
+							thunk
+						);
+					};
+				}(isAsync, key, thunk))
+			});
+		}
+
+		return instance;
+	},
+
 	newInstanceSync: function(typeInfo, handlerConfigs) {
+		this.emit('building', typeInfo);
 		var args = getParams(typeInfo).map(function(typeData) {
 			return this.resolverSync(typeData.type);
 		}.bind(this));
 
-		return invokeCtor(typeInfo.ctor, handlerConfigs, args);
+		var instance = this.invokeCtor(typeInfo.ctor, handlerConfigs, args);
+		this.emit('built', typeInfo, instance);
+		return instance;
 	},
 
 	newInstance: function(typeInfo, handlerConfigs, callback) {
+		this.emit('building', typeInfo);
 		var self = this;
 		async.mapSeries(getParams(typeInfo), function(typeData, next) {
 			self.resolver(typeData.type, function(err, param) {
@@ -108,9 +121,11 @@ ObjectBuilder.prototype = {
 				return;
 			}
 
-			callback(null, invokeCtor(typeInfo.ctor, handlerConfigs, args));
+			var instance = self.invokeCtor(typeInfo.ctor, handlerConfigs, args);
+			self.emit('built', typeInfo, instance);
+			callback(null, instance);
 		});
 	}
-};
+});
 
 module.exports = ObjectBuilder;

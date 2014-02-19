@@ -27,6 +27,7 @@ calls.
 		* [Manual injection](#manual-injection)
 	* [Interception](#interception)
 	* [Creating child containers](#creating-child-containers)
+	* [Events](#events)
 * [Real world example](#in-the-real-world)
 * [Development](#development)
 
@@ -762,6 +763,47 @@ var fooInstance = child.resolveSync(Foo); // instance of Foo
 
 Anything you do on the parent container will **not** affect the state of the
 child container, and vice versa. They are completely independent.
+
+### Events
+Events emitted by a `Container` instance:
+
+- `registering` - when a type/instance/factory is being registered
+  1. `arguments[0]`: the registration key
+  1. `arguments[1]`: the registration type (`type`, `instance` or `factory`)
+- `resolving` - when an object is being resolved
+  1. `arguments[0]`: the registration key
+- `resolved` - when an object has been resolved
+  1. `arguments[0]`: the registration key
+  2. `arguments[1]`: the resolved object
+
+Events emitted by an `ObjectBuilder` instance:
+
+- `building` - when an object is being built
+  1. `arguments[0]`: metadata for the type: `{ args: [], ctor: Function, name: 'name' }`
+- `built` - when an object has been built
+  1. `arguments[0]`: metadata for the type (see above)
+  2. `arguments[1]`: the object instance
+- `intercepting` - when a method is being intercepted
+  1. `arguments[0]`: the object instance
+  2. `arguments[1]`: the name of the method being intercepted
+
+**Example**:
+
+```javascript
+var container = new Container();
+
+container
+	.on('registering', function(key) { console.log(key + ' is being registered'); })
+	.on('resolving', function(key) { console.log(key + ' is being resolved'); })
+	.on('resolved', function(key) { console.log(key + ' has been resolved'); });
+
+container.builder
+	.on('building', function(info) { console.log('building ' + info.name); })
+	.on('built', function(info) { console.log('built ' + info.name); })
+	.on('intercepting', function(instance, methodName) {
+		console.log('intercepting ' + instance.constructor.name + '.' + methodName);
+	});
+```
 
 ## In the real world
 Inversion of control containers are useful for easing the pain of objects

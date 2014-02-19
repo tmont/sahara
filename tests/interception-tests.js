@@ -55,6 +55,67 @@ describe('Interception', function() {
 		invocations.should.equal(1);
 	});
 
+	it('should emit events', function() {
+		function Foo() {
+			this.bar = function() {};
+		}
+
+		var invocations = 0;
+
+		function callHandler(context, next) {
+			invocations++;
+			next();
+		}
+
+		var container = new Container();
+
+		var eResolved = 0,
+			resolving = 0,
+			building = 0,
+			built = 0,
+			intercepting = 0,
+			registering = 0;
+
+		container.on('resolving', function(key) {
+			key.should.equal('Foo');
+			resolving++;
+		});
+		container.on('resolved', function(key) {
+			key.should.equal('Foo');
+			eResolved++;
+		});
+		container.on('registering', function(key) {
+			key.should.equal('Foo');
+			registering++;
+		});
+		container.builder.on('building', function(info) {
+			info.name.should.equal('Foo');
+			building++;
+		});
+		container.builder.on('built', function(info) {
+			info.name.should.equal('Foo');
+			built++;
+		});
+		container.builder.on('intercepting', function(instance, methodName) {
+			methodName.should.equal('bar');
+			intercepting++;
+		});
+
+		var resolved = container
+			.registerType(Foo)
+			.intercept(always, callHandler).sync()
+			.resolveSync(Foo);
+
+		resolved.bar();
+		invocations.should.equal(1);
+		resolving.should.equal(1);
+		eResolved.should.equal(1);
+		registering.should.equal(1);
+		building.should.equal(1);
+		built.should.equal(1);
+		intercepting.should.equal(1);
+	});
+
 	it('should allow explicit method name as matcher', function() {
 		function Foo() {
 			this.bar = function() {};
@@ -603,6 +664,72 @@ describe('Interception', function() {
 	});
 
 	describe('asynchronously', function() {
+		it('should emit events', function(done) {
+			function Foo() {
+				this.bar = function(callback) {
+					callback();
+				};
+			}
+
+			var invocations = 0;
+
+			function callHandler(context, next) {
+				invocations++;
+				next();
+			}
+
+			var container = new Container();
+
+			var eResolved = 0,
+				resolving = 0,
+				building = 0,
+				built = 0,
+				intercepting = 0,
+				registering = 0;
+
+			container.on('resolving', function(key) {
+				key.should.equal('Foo');
+				resolving++;
+			});
+			container.on('resolved', function(key) {
+				key.should.equal('Foo');
+				eResolved++;
+			});
+			container.on('registering', function(key) {
+				key.should.equal('Foo');
+				registering++;
+			});
+			container.builder.on('building', function(info) {
+				info.name.should.equal('Foo');
+				building++;
+			});
+			container.builder.on('built', function(info) {
+				info.name.should.equal('Foo');
+				built++;
+			});
+			container.builder.on('intercepting', function(instance, methodName) {
+				methodName.should.equal('bar');
+				intercepting++;
+			});
+
+			container
+				.registerType(Foo)
+				.intercept(always, callHandler).async();
+
+			container.resolve(Foo, function(err, resolved) {
+				should.not.exist(err);
+				resolved.bar();
+				invocations.should.equal(1);
+				resolving.should.equal(1);
+				eResolved.should.equal(1);
+				registering.should.equal(1);
+				building.should.equal(1);
+				built.should.equal(1);
+				intercepting.should.equal(1);
+				done();
+			});
+		});
+
 		it('should set return value', function(done) {
 			function Foo() {
 				this.bar = function(callback) {
