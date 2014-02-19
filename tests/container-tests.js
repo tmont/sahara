@@ -647,6 +647,30 @@ describe('Container', function() {
 			parent.resolveSync(Foo).baz();
 			handlerInvoked.should.equal(false);
 		});
-	});
 
+		it('should inherit events from parent', function() {
+			function Foo() {}
+			var parent = new Container().registerType(Foo);
+			var resolving = 0,
+				building = 0;
+
+			parent.on('resolving', function() {
+				resolving++;
+			});
+			parent.builder.on('building', function() {
+				building++;
+			});
+
+			var child = parent.createChildContainer();
+
+			child.resolveSync(Foo);
+			resolving.should.equal(0);
+			building.should.equal(0);
+
+			child = parent.createChildContainer(true);
+			child.resolveSync(Foo);
+			resolving.should.equal(1);
+			building.should.equal(1);
+		});
+	});
 });

@@ -372,9 +372,10 @@ util._extend(Container.prototype, {
 	/**
 	 * Creates a clone of the container in its current state
 	 *
+	 * @param {Boolean} withEvents
 	 * @returns {Container}
 	 */
-	createChildContainer: function() {
+	createChildContainer: function(withEvents) {
 		var childContainer = new Container(this),
 			self = this;
 
@@ -389,6 +390,20 @@ util._extend(Container.prototype, {
 		this.handlerConfigs.forEach(function(config) {
 			childContainer.handlerConfigs.push(config);
 		});
+
+		if (withEvents) {
+			[ 'registering', 'resolving', 'resolved' ].forEach(function(event) {
+				self.listeners(event).forEach(function(listener) {
+					childContainer.on(event, listener);
+				});
+			});
+
+			[ 'building', 'built', 'intercepting' ].forEach(function(event) {
+				self.builder.listeners(event).forEach(function(listener) {
+					childContainer.builder.on(event, listener);
+				});
+			});
+		}
 
 		return childContainer;
 	}

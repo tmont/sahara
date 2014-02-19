@@ -763,6 +763,13 @@ var fooInstance = child.resolveSync(Foo); // instance of Foo
 Anything you do on the parent container will **not** affect the state of the
 child container, and vice versa. They are completely independent.
 
+If you want the child container to inherit the events as well, pass `true`
+to `createChildContainer()`.
+
+```javascript
+child = parent.createChildContainer(true);
+```
+
 ### Events
 Events emitted by a `Container` instance:
 
