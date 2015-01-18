@@ -95,10 +95,10 @@ util._extend(ObjectBuilder.prototype, {
 		return instance;
 	},
 
-	newInstanceSync: function(typeInfo, handlerConfigs) {
+	newInstanceSync: function(typeInfo, handlerConfigs, context) {
 		this.emit('building', typeInfo);
 		var args = getParams(typeInfo).map(function(typeData) {
-			return this.resolverSync(typeData.type);
+			return this.resolverSync(typeData.type, context);
 		}.bind(this));
 
 		var instance = this.invokeCtor(typeInfo.ctor, handlerConfigs, args);
@@ -106,11 +106,11 @@ util._extend(ObjectBuilder.prototype, {
 		return instance;
 	},
 
-	newInstance: function(typeInfo, handlerConfigs, callback) {
+	newInstance: function(typeInfo, handlerConfigs, context, callback) {
 		this.emit('building', typeInfo);
 		var self = this;
 		async.mapSeries(getParams(typeInfo), function(typeData, next) {
-			self.resolver(typeData.type, next);
+			self.resolver(typeData.type, context, next);
 		}, function(err, args) {
 			if (err) {
 				callback(err);

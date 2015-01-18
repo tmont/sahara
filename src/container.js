@@ -6,8 +6,24 @@ var DependencyGraph = require('dep-graph'),
 	EventEmitter = require('events').EventEmitter,
 	utils = require('./util');
 
-function createUnregisteredError(key) {
-	return new Error('Nothing with key "' + key + '" is registered in the container');
+function createUnregisteredError(key, context) {
+	var message = 'Nothing with key "' + key + '" is registered in the container';
+	if (context && context.history.length) {
+		message += '; error occurred while resolving ';
+		message += context.history.concat([{ name: key }])
+			.map(function(registration, i) {
+				return '"' + registration.name + '"';
+			})
+			.join(' -> ');
+	}
+
+	return new Error(message);
+}
+
+function createResolverContext() {
+	return {
+		history: []
+	};
 }
 
 function getKeyFromCtor(ctor) {
@@ -181,19 +197,29 @@ util._extend(Container.prototype, {
 	 * Resolves a type to an instance
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
+	 * @param {Object} [context]
 	 * @param {Function} callback
 	 */
-	resolve: function(key, callback) {
+	resolve: function(key, context, callback) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
 
+		if (typeof(context) === 'function') {
+			callback = context;
+			context = null;
+		}
+
+		context = context || createResolverContext();
+
 		this.emit('resolving', key);
 		var registration = this.registrations[key];
 		if (!registration) {
-			callback(createUnregisteredError(key));
+			callback(createUnregisteredError(key, context));
 			return;
 		}
+
+		context.history.push(registration);
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
@@ -222,7 +248,7 @@ util._extend(Container.prototype, {
 		if (registration instanceof InstanceRegistration) {
 			injectAndReturn(null, registration.instance);
 		} else if (registration instanceof TypeRegistration) {
-			this.builder.newInstance(registration.typeInfo, this.handlerConfigs, injectAndReturn);
+			this.builder.newInstance(registration.typeInfo, this.handlerConfigs, context, injectAndReturn);
 		} else if (registration instanceof FactoryRegistration) {
 			registration.factory(this, injectAndReturn);
 		}
@@ -232,18 +258,22 @@ util._extend(Container.prototype, {
 	 * Resolve a type to an instance synchronously
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
+	 * @param {Object} [context] Resolver context used internally
 	 * @return {*} The resolved object
 	 */
-	resolveSync: function(key) {
+	resolveSync: function(key, context) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
+		context = context || createResolverContext();
 
 		var registration = this.registrations[key];
 		this.emit('resolving', key);
 		if (!registration) {
-			throw createUnregisteredError(key);
+			throw createUnregisteredError(key, context);
 		}
+
+		context.history.push(registration);
 
 		var existing = registration.lifetime.fetch();
 		if (existing) {
@@ -255,7 +285,7 @@ util._extend(Container.prototype, {
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
-			instance = this.builder.newInstanceSync(registration.typeInfo, this.handlerConfigs);
+			instance = this.builder.newInstanceSync(registration.typeInfo, this.handlerConfigs, context);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		}

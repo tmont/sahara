@@ -10,6 +10,21 @@ describe('Container', function() {
 			.throwError('Nothing with key "Foo" is registered in the container');
 	});
 
+	it('should show pretty message for unregistered errors', function() {
+		function Foo(/** Bar */bar, /** Baz */baz) {}
+		function Bar(/** Bat */bat) {}
+		function Baz() {}
+
+		var container = new Container()
+			.registerType(Foo)
+			.registerType(Bar)
+			.registerType(Baz);
+
+		(function() { container.resolveSync(Foo); })
+			.should
+			.throwError('Nothing with key "Bat" is registered in the container; error occurred while resolving "Foo" -> "Bar" -> "Bat"');
+	});
+
 	it('should not throw if key does not exist for tryResolveSync()', function() {
 		(function() {
 			var resolved = new Container().tryResolveSync('foo');
@@ -590,7 +605,7 @@ describe('Container', function() {
 		});
 
 		it('should not affect parent\'s dependency graph', function() {
-			function Bar(/** Baz */bat) {}
+			function Bar(/** Baz */baz) {}
 			function Baz() {}
 
 			var parent = new Container().registerType(Bar),
@@ -598,7 +613,7 @@ describe('Container', function() {
 					.registerType(Baz);
 
 			(function() { parent.resolveSync(Bar); })
-				.should.throwError('Nothing with key "Baz" is registered in the container');
+				.should.throwError(/^Nothing with key "Baz" is registered in the container/);
 		});
 
 		it('should set parent', function() {
