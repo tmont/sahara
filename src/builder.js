@@ -110,11 +110,7 @@ util._extend(ObjectBuilder.prototype, {
 		this.emit('building', typeInfo);
 		var self = this;
 		async.mapSeries(getParams(typeInfo), function(typeData, next) {
-			self.resolver(typeData.type, function(err, param) {
-				process.nextTick(function() {
-					next(err, param);
-				});
-			});
+			self.resolver(typeData.type, next);
 		}, function(err, args) {
 			if (err) {
 				callback(err);

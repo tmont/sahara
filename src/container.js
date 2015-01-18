@@ -296,11 +296,7 @@ util._extend(Container.prototype, {
 
 		var self = this;
 		async.each(registration.injections, function(injection, next) {
-			injection.inject(instance, self, function(err) {
-				process.nextTick(function() {
-					next(err);
-				});
-			});
+			injection.inject(instance, self, next);
 		}, callback);
 	},
 

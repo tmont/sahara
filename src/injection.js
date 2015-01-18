@@ -94,11 +94,7 @@ MethodInjection.prototype = {
 
 		args = util.getTypeInfo(object[name], name).args;
 		async.map(args, function(argInfo, next) {
-			container.resolve(argInfo.type, function(err, instance) {
-				process.nextTick(function() {
-					next(err, instance);
-				});
-			});
+			container.resolve(argInfo.type, next);
 		}, applyArgs);
 	}
 };
