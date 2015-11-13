@@ -30,7 +30,7 @@ exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 		signature.split(',').forEach(function(param, i) {
 			//ferret out the type of each argument based on inline jsdoc:
 			//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs
-			var data = /^\/\*\*\s*(\w+)\s*\*\/\s*(\w+)\s*$/.exec(param.trim());
+			var data = /^\/\*\*\s*(\w+)\s*\*+\/\s*(\w+)\s*$/.exec(param.trim());
 			if (!data) {
 				throw new Error(
 					'Unable to determine type of parameter at position ' + (i + 1) +
