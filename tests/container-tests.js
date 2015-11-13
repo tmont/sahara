@@ -248,6 +248,19 @@ describe('Container', function() {
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.be.equal(bar);
+
+			// yarp
+			function Foo2(/** Bar **/bar) {
+				this.bar = bar;
+			}
+
+			var foo2 = new Container()
+				.registerInstance(bar)
+				.registerType(Foo2)
+				.resolveSync('Foo2');
+
+			foo2.should.be.instanceOf(Foo2);
+			foo2.bar.should.be.equal(bar);
 		});
 
 		it('should allow copious whitespace in function definition', function() {
