@@ -3,8 +3,6 @@ var async = require('async'),
 	EventEmitter = require('events').EventEmitter,
 	Interceptor = require('./interception');
 
-
-
 function getParams(typeInfo) {
 	var params = typeInfo.args;
 	params.sort(function(a, b) {
