@@ -34,6 +34,14 @@ calls.
 ## Installation
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
+You will need to run node with the `--harmony` flag enabled.
+
+**NOTE**: sahara uses several ES6 features, most notably the 
+[spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator)
+to dynamically construct [classes](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes).
+This means sahara >=2.0.0 requires node v4 and up. If this is unacceptable, you 
+should install `sahara@1.3.0`.
+
 ## Usage
 ### API
 All of these are explained in mind-numbing detail below.
@@ -206,6 +214,20 @@ var fooInstance = container.resolveSync('MySpecialName');
 //with an instance
 container.registerInstance(fooInstance, 'AnotherSpecialName');
 var sameInstance = container.resolveSync('AnotherSpecialName');
+```
+
+#### Classes
+As of v2.0.0, sahara supports classes with or without a `constructor` method.
+
+```javascript
+class Foo {
+  constructor() {}
+}
+class Bar {}
+
+container
+  .registerType(Foo)
+  .registerType(Bar);
 ```
 
 ### Registering a factory

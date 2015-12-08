@@ -12,6 +12,10 @@
 		"index.js"
 	],
 
+	"engines": {
+		"node": ">=4.2.0"
+	},
+
 	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
 	"repository": {
 		"type": "git",
@@ -30,6 +34,6 @@
 	},
 
 	"scripts": {
-		"test": "./node_modules/.bin/mocha -R dot tests"
+		"test": "./node_modules/.bin/mocha --harmony -R dot tests"
 	}
 }

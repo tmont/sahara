@@ -25,10 +25,8 @@ util.inherits(ObjectBuilder, EventEmitter);
 
 util._extend(ObjectBuilder.prototype, {
 	invokeCtor: function(ctor, handlerConfigs, args) {
-		var instance = Object.create(ctor.prototype),
-			self = this;
-
-		ctor.apply(instance, args);
+		var self = this,
+			instance = new ctor(...args);
 
 		if (!handlerConfigs.length) {
 			return instance;

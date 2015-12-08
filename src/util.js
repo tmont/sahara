@@ -6,7 +6,21 @@ exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 		throw new Error('Constructor must be a function, got ' + message);
 	}
 
-	var data = /^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/.exec(ctor.toString());
+	var docCommentRegex = [
+		/^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/,
+		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*\{/,
+		/^class(?:[\s+](\w+))?/
+	];
+
+	var data;
+
+	for (var i = 0; i < docCommentRegex.length; i++) {
+		data = docCommentRegex[i].exec(ctor.toString());
+		if (data) {
+			break;
+		}
+	}
+
 	if (!data) {
 		throw new Error(
 			'Unable to parse function definition: ' + ctor.toString() + '. If ' +
@@ -15,7 +29,7 @@ exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 	}
 
 	var typeName = key || data[1],
-		signature = data[2].trim();
+		signature = (data[2] || '').trim();
 	if (!typeName) {
 		throw new Error('A resolution key must be given if a named function is not');
 	}
