@@ -49,10 +49,10 @@ util._extend(ObjectBuilder.prototype, {
 				continue;
 			}
 
-			var isAsync;
+			var isAsync = null;
 			var matchingConfigs = handlerConfigs.filter(function(data) {
 				var isMatch = data.matcher(instance, key);
-				if (isMatch && isAsync === undefined) {
+				if (isMatch && isAsync === null) {
 					isAsync = data.isAsync;
 				}
 
