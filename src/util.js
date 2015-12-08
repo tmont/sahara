@@ -7,9 +7,14 @@ exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 	}
 
 	var docCommentRegex = [
+		//normal function
 		/^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/,
+		//class with constructor
 		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*\{/,
-		/^class(?:[\s+](\w+))?/
+		//class without constructor
+		/^class(?:[\s+](\w+))?/,
+		//fat arrow functions (always anonymous, so first group capture must be empty)
+		/^()\(?([^)]*)\)?\s*=>\s*\{/
 	];
 
 	var data;
