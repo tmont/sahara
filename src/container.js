@@ -1,4 +1,4 @@
-var DependencyGraph = require('dep-graph'),
+var Graph = require('tarjan-graph'),
 	ObjectBuilder = require('./builder'),
 	lifetimes = require('./lifetime'),
 	async = require('async'),
@@ -11,7 +11,7 @@ function createUnregisteredError(key, context) {
 	if (context && context.history.length) {
 		message += '; error occurred while resolving ';
 		message += context.history.concat([{ name: key }])
-			.map(function(registration, i) {
+			.map(function(registration) {
 				return '"' + registration.name + '"';
 			})
 			.join(' -> ');
@@ -58,7 +58,7 @@ function Container(parent) {
 	this.parent = parent || null;
 	this.registrations = {};
 	this.handlerConfigs = [];
-	this.graph = new DependencyGraph();
+	this.graph = new Graph();
 	this.builder = new ObjectBuilder(
 		this.resolve.bind(this),
 		this.resolveSync.bind(this)
@@ -116,14 +116,13 @@ util._extend(Container.prototype, {
 			typeInfo
 		);
 
-		//add to the dependency graph to verify that there are no
-		//circular dependencies (the graph isn't used anywhere else)
-		for (var i = 0; i < typeInfo.args.length; i++) {
-			this.graph.add(typeName, typeInfo.args[i].type);
+		try {
+			this.graph.addAndVerify(typeName, typeInfo.args.map(function(info) {
+				return info.type;
+			}));
+		} catch (e) {
+			throw new Error(typeName + '\'s dependencies create a cycle: ' + e.message);
 		}
-
-		//the graph isn't actually built until you try to get the chain
-		this.graph.getChain(typeName);
 
 		return this;
 	},
@@ -409,9 +408,7 @@ util._extend(Container.prototype, {
 			childContainer.registrations[key] = self.registrations[key];
 		});
 
-		Object.keys(this.graph.map).forEach(function(key) {
-			childContainer.graph.map[key] = self.graph.map[key];
-		});
+		childContainer.graph = this.graph.clone();
 
 		this.handlerConfigs.forEach(function(config) {
 			childContainer.handlerConfigs.push(config);

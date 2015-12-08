@@ -300,7 +300,7 @@ describe('Container', function() {
 
 			(function() {
 				new Container().registerType(Foo).registerType(Bar);
-			}).should.throwError('Cyclic dependency from Foo to Bar');
+			}).should.throwError(/^Bar's dependencies create a cycle/);
 		});
 
 		it('should use lifetime', function() {
@@ -614,7 +614,7 @@ describe('Container', function() {
 				child = parent.createChildContainer();
 
 			(function() { child.registerType(Baz); })
-				.should.throwError('Cyclic dependency from Bar to Baz');
+				.should.throwError(/^Baz's dependencies create a cycle/);
 		});
 
 		it('should not affect parent\'s dependency graph', function() {
