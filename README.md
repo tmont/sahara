@@ -34,7 +34,8 @@ calls.
 ## Installation
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
-You will need to run node with the `--harmony` flag enabled.
+* For Node v5, you will need to run node with the `--harmony`
+* For Node v4, you will need to run node with `--harmony --use_strict`
 
 **NOTE**: sahara uses several ES6 features, most notably the 
 [spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator)
