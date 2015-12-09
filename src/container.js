@@ -235,6 +235,8 @@ util._extend(Container.prototype, {
 				return;
 			}
 
+			context.history.pop();
+
 			self.inject(instance, key, function(err) {
 				if (!err) {
 					registration.lifetime.store(instance);
@@ -289,6 +291,8 @@ util._extend(Container.prototype, {
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		}
+
+		context.history.pop();
 
 		this.injectSync(instance, key);
 		registration.lifetime.store(instance);

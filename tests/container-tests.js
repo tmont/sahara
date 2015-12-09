@@ -10,9 +10,9 @@ describe('Container', function() {
 			.throwError('Nothing with key "Foo" is registered in the container');
 	});
 
-	it('should show pretty message for unregistered errors', function() {
-		function Foo(/** Bar */bar, /** Baz */baz) {}
-		function Bar(/** Bat */bat) {}
+	it('should show pretty message for sync resolution errors', function() {
+		function Foo(/** Baz */baz, /** Bar */bar) {}
+		function Bar(/** Baz */baz, /** Bat */bat) {}
 		function Baz() {}
 
 		var container = new Container()
@@ -23,6 +23,24 @@ describe('Container', function() {
 		(function() { container.resolveSync(Foo); })
 			.should
 			.throwError('Nothing with key "Bat" is registered in the container; error occurred while resolving "Foo" -> "Bar" -> "Bat"');
+	});
+
+	it('should show pretty message for async resolution errors', function(done) {
+		function Foo(/** Baz */baz, /** Bar */bar) {}
+		function Bar(/** Baz */baz, /** Bat */bat) {}
+		function Baz() {}
+
+		var container = new Container()
+			.registerType(Foo)
+			.registerType(Bar)
+			.registerType(Baz);
+
+		container.resolve(Foo, function(err, instance) {
+			should.exist(err);
+			should.not.exist(instance);
+			err.message.should.equal('Nothing with key "Bat" is registered in the container; error occurred while resolving "Foo" -> "Bar" -> "Bat"');
+			done();
+		});
 	});
 
 	it('should not throw if key does not exist for tryResolveSync()', function() {
