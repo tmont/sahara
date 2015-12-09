@@ -29,11 +29,11 @@
 	},
 
 	"devDependencies": {
-		"mocha": "2.3.4",
+		"mocha": "https://github.com/tmont/mocha.git#8b03798a95f70d9882384e2574922d365756370e",
 		"should": "7.1.1"
 	},
 
 	"scripts": {
-		"test": "./node_modules/.bin/mocha --harmony -R dot tests"
+		"test": "./node_modules/.bin/mocha --use_strict --harmony -R dot tests"
 	}
 }
