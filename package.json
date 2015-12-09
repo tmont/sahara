@@ -34,6 +34,6 @@
 	},
 
 	"scripts": {
-		"test": "./node_modules/.bin/mocha --use_strict --harmony -R dot tests"
+		"test": "./node_modules/.bin/mocha --use_strict --harmony -C -R dot tests"
 	}
 }
