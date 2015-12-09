@@ -41,7 +41,9 @@ Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 [spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator)
 to dynamically construct [classes](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes).
 This means sahara >=2.0.0 requires node v4 and up. If this is unacceptable, you 
-should install `sahara@1.3.0`.
+should install `sahara@1.3.0`. sahara >=2.0.0 adds support for classes and
+fat-arrow functions. If you don't need those or don't want to add the required
+flags, use v1.3.0.
 
 ## Usage
 ### API
