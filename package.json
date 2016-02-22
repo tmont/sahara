@@ -3,18 +3,11 @@
 	"version": "2.0.1",
 	"description": "An inversion-of-control container for managing dependencies. Supports constructor, property and method injection",
 	"keywords": [ "ioc", "inversion", "control", "dependency", "injection", "container" ],
-	"directories": {
-		"lib": "src"
-	},
-
+	"license": "MIT",
 	"files": [
 		"src",
 		"index.js"
 	],
-
-	"engines": {
-		"node": ">=4.2.0"
-	},
 
 	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
 	"repository": {
@@ -25,15 +18,16 @@
 	"dependencies": {
 		"tarjan-graph": "0.3.0",
 		"node-uuid": "1.4.7",
-		"async": "1.5.0"
+		"async": "1.5.2"
 	},
 
 	"devDependencies": {
-		"mocha": "https://github.com/tmont/mocha.git#8b03798a95f70d9882384e2574922d365756370e",
-		"should": "7.1.1"
+		"mocha": "2.4.5",
+		"semver": "5.1.0",
+		"should": "8.2.2"
 	},
 
 	"scripts": {
-		"test": "./node_modules/.bin/mocha --use_strict --harmony -C -R dot tests"
+		"test": "./node_modules/.bin/mocha -R dot tests/run"
 	}
 }

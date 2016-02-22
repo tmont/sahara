@@ -1,5 +1,6 @@
 var should = require('should'),
-	Container = require('../').Container,
+	sahara = require('../../'),
+	Container = sahara.Container,
 	async = require('async');
 
 describe('Interception', function() {

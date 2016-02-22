@@ -34,18 +34,8 @@ calls.
 ## Installation
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
-* For Node v5, you will need to run node with the `--harmony`
-* For Node v4, you will need to run node with `--harmony --use_strict`
-
-**NOTE**: sahara uses several ES6 features, most notably the 
-[spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator)
-to dynamically construct [classes](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes).
-This means sahara >=2.0.0 requires node v4 and up. If this is unacceptable, you 
-should install `sahara@1.3.1`. sahara >=2.0.0 adds support for classes and
-fat-arrow functions. If you don't need those or don't want to add the required
-flags, use v1.3.x.
-
-The non-harmony branch is called `no-harmony`.
+Sahara supports node 0.10. As of v3.0.0 there is support for ES6 features
+such as classes and fat-arrow functions.
 
 ## Usage
 ### API

@@ -1,6 +1,7 @@
 var should = require('should'),
-	lifetime = require('../').lifetime,
-	ObjectManager = require('../').ObjectManager;
+	sahara = require('../../'),
+	lifetime = sahara.lifetime,
+	ObjectManager = sahara.ObjectManager;
 
 describe('Lifetime', function() {
 	it('should store and fetch transiently', function() {

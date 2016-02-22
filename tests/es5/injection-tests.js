@@ -1,6 +1,7 @@
 var should = require('should'),
-	Container = require('../').Container,
-	inject = require('../').inject;
+	sahara = require('../../'),
+	Container = sahara.Container,
+	inject = sahara.inject;
 
 describe('Injection', function() {
 	it('should inject property with value', function() {
