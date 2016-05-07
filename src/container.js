@@ -26,6 +26,31 @@ function createResolverContext() {
 	};
 }
 
+function resolveSignatureToOptions(args) {
+	args = [].slice.call(args, 1);
+
+	if (args.length === 0) {
+		return {};
+	}
+
+	//just a regular options object (making sure to check for null!)
+	if (args[0] && typeof(args[0]) === 'object') {
+		return args[0];
+	}
+
+	var options = {};
+	if (typeof(args[0]) === 'string') {
+		options.key = args[0];
+	}
+	if (args[1]) {
+		options.lifetime = args[1];
+	}
+
+	options.injections = args.slice(2);
+
+	return options;
+}
+
 function getKeyFromCtor(ctor) {
 	return ctor.name;
 }
@@ -66,31 +91,6 @@ function Container(parent) {
 }
 
 util.inherits(Container, EventEmitter);
-
-function resolveSignatureToOptions(args) {
-	args = [].slice.call(args, 1);
-
-	if (args.length === 0) {
-		return {};
-	}
-
-	//just a regular options object (making sure to check for null!)
-	if (args[0] && typeof(args[0]) === 'object') {
-		return args[0];
-	}
-
-	var options = {};
-	if (typeof(args[0]) === 'string') {
-		options.key = args[0];
-	}
-	if (args[1]) {
-		options.lifetime = args[1];
-	}
-
-	options.injections = args.slice(2);
-
-	return options;
-}
 
 util._extend(Container.prototype, {
 	/**
