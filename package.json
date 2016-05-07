@@ -24,7 +24,7 @@
 	"devDependencies": {
 		"mocha": "2.4.5",
 		"semver": "5.1.0",
-		"should": "8.2.2"
+		"should": "8.3.1"
 	},
 
 	"scripts": {
