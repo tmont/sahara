@@ -88,6 +88,8 @@ function Container(parent) {
 		this.resolve.bind(this),
 		this.resolveSync.bind(this)
 	);
+
+	this.registerInstance(this);
 }
 
 util.inherits(Container, EventEmitter);

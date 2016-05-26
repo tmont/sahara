@@ -50,6 +50,11 @@ describe('Container', function() {
 		}).should.not.throwError();
 	});
 
+	it('should register itself', function() {
+		var container = new Container();
+		container.resolveSync('Container').should.equal(container);
+	});
+
 	it('should determine if something is registered', function() {
 		function foo() {}
 
