@@ -1,6 +1,6 @@
 var async = require('async'),
-	util = require('util'),
-	EventEmitter = require('events').EventEmitter,
+	merge = require('./merge'),
+	EventEmitter = require('./event-emitter'),
 	Interceptor = require('./interception');
 
 function getParams(typeInfo) {
@@ -17,13 +17,12 @@ function getParams(typeInfo) {
 }
 
 function ObjectBuilder(resolver, resolverSync) {
+	EventEmitter.call(this);
 	this.resolver = resolver;
 	this.resolverSync = resolverSync;
 }
 
-util.inherits(ObjectBuilder, EventEmitter);
-
-util._extend(ObjectBuilder.prototype, {
+merge(ObjectBuilder.prototype, EventEmitter.prototype, {
 	invokeCtor: function(ctor, handlerConfigs, args) {
 		var self = this,
 			instance = new (Function.prototype.bind.apply(ctor, [null].concat(args)))();

@@ -2,8 +2,8 @@ var Graph = require('tarjan-graph'),
 	ObjectBuilder = require('./builder'),
 	lifetimes = require('./lifetime'),
 	async = require('async'),
-	util = require('util'),
-	EventEmitter = require('events').EventEmitter,
+	merge = require('./merge'),
+	EventEmitter = require('./event-emitter'),
 	utils = require('./util');
 
 function createUnregisteredError(key, context) {
@@ -80,6 +80,7 @@ function FactoryRegistration(name, lifetime, injections, factory) {
 }
 
 function Container(parent) {
+	EventEmitter.call(this);
 	this.parent = parent || null;
 	this.registrations = {};
 	this.handlerConfigs = [];
@@ -92,9 +93,7 @@ function Container(parent) {
 	this.registerInstance(this);
 }
 
-util.inherits(Container, EventEmitter);
-
-util._extend(Container.prototype, {
+merge(Container.prototype, EventEmitter.prototype, {
 	/**
 	 * Registers a type from a constructor
 	 *

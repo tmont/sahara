@@ -1,14 +1,13 @@
-var EventEmitter = require('events').EventEmitter,
-	util = require('util');
+var EventEmitter = require('./event-emitter'),
+	merge = require('./merge');
 
 function ObjectManager(collection) {
+	EventEmitter.call(this);
 	this.items = collection || {};
 	this.keys = [];
 }
 
-util.inherits(ObjectManager, EventEmitter);
-
-util._extend(ObjectManager.prototype, {
+merge(ObjectManager.prototype, EventEmitter.prototype, {
 	get: function(key) {
 		return this.items[key];
 	},
