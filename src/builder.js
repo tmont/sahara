@@ -1,4 +1,4 @@
-var async = require('async'),
+var async = require('./async'),
 	merge = require('./merge'),
 	EventEmitter = require('./event-emitter'),
 	Interceptor = require('./interception');

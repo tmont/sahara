@@ -1,5 +1,5 @@
 var util = require('./util'),
-	async = require('async');
+	async = require('./async');
 
 function PropertyValueInjection(name, value) {
 	this.name = name;

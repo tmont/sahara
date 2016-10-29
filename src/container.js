@@ -1,7 +1,7 @@
 var Graph = require('tarjan-graph'),
 	ObjectBuilder = require('./builder'),
 	lifetimes = require('./lifetime'),
-	async = require('async'),
+	async = require('./async'),
 	merge = require('./merge'),
 	EventEmitter = require('./event-emitter'),
 	utils = require('./util');

@@ -17,8 +17,7 @@
 
 	"dependencies": {
 		"tarjan-graph": "0.3.0",
-		"node-uuid": "1.4.7",
-		"async": "2.0.1"
+		"node-uuid": "1.4.7"
 	},
 
 	"devDependencies": {
