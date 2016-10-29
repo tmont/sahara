@@ -16,8 +16,7 @@
 	},
 
 	"dependencies": {
-		"tarjan-graph": "0.3.0",
-		"node-uuid": "1.4.7"
+		"tarjan-graph": "0.3.0"
 	},
 
 	"devDependencies": {

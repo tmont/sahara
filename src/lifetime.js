@@ -1,6 +1,3 @@
-var uuid = require('node-uuid'),
-	ObjectManager = require('./object-manager');
-
 function MemoryLifetime() {
 	this.value = null;
 }
@@ -24,29 +21,7 @@ TransientLifetime.prototype = {
 	store: function(value) {}
 };
 
-function ExternallyManagedLifetime(manager) {
-	if (!(manager instanceof ObjectManager)) {
-		throw new Error('An ObjectManager instance must be provided');
-	}
-
-	this.manager = manager;
-	do {
-		this.key = uuid.v4();
-	} while (this.manager.get(this.key));
-}
-
-ExternallyManagedLifetime.prototype = {
-	fetch: function() {
-		return this.manager.get(this.key);
-	},
-
-	store: function(value) {
-		this.manager.add(this.key, value);
-	}
-};
-
 module.exports = {
 	Memory: MemoryLifetime,
-	Transient: TransientLifetime,
-	ExternallyManaged: ExternallyManagedLifetime
+	Transient: TransientLifetime
 };

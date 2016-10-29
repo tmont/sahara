@@ -345,46 +345,6 @@ function DbConnection() {
 container.registerType(DbConnection, { lifetime: lifetime.memory() });
 ```
 
-The `ExternallyManagedLifetime` puts the onus of object management on the
-client (i.e. you). This is useful for managing something that should exist
-temporarily.
-
-```javascript
-var manager = new sahara.ObjectManager(),
-	container = new sahara.Container();
-
-container.registerInstance({ foo: 'bar' }, 'Foo', sahara.lifetime.external(manager));
-container.registerInstance({ foo: 'baz' }, 'Bar', sahara.lifetime.external(manager));
-```
-
-You can also provide a collection to the `ObjectManager`, and all of the managed instances
-will be stored in that object.
-
-```javascript
-var items = {
-		foo: 'bar';
-	},
-	manager = new sahara.ObjectManager(items);
-
-container.registerInstance('hello world', 'Foo', sahara.lifetime.external(manager));
-
-var instance = container.resolveSync('Foo');
-console.log(items);
-/*
-{ foo: 'bar',
-  '95ae7c41-b413-48a9-9712-5d1756d6cf92': 'hello world' }
-*/
-```
-
-To purge the `ObjectManager`'s stored values, call `purge()`:
-
-```javascript
-manager.purge();
-```
-
-The `ObjectManager` is an `EventEmitter` and emits `add` when a new object is
-added, and `purge` when the manager is purged.
-
 ### Injection
 By default, Sahara performs *constructor injection*. That is, it resolves
 dependencies that are specified in the constructor. What if you have
