@@ -2,6 +2,9 @@ var injection = require('./src/injection'),
 	lifetime = require('./src/lifetime');
 
 exports.Container = require('./src/container');
+exports.interception = {
+	Container: require('./src/interception/container')
+};
 exports.inject = {
 	propertyValue: function(name, value) {
 		return new injection.PropertyValue(name, value);

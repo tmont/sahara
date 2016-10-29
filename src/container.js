@@ -1,5 +1,5 @@
 var Graph = require('tarjan-graph'),
-	ObjectBuilder = require('./builder'),
+	ObjectBuilder = require('./object-builder'),
 	lifetimes = require('./lifetime'),
 	async = require('./async'),
 	merge = require('./merge'),
@@ -354,59 +354,13 @@ merge(Container.prototype, EventEmitter.prototype, {
 	},
 
 	/**
-	 * Configures interception
-	 *
-	 * @param {Function|Boolean|String|Array} matcher A predicate to determine if the
-	 * function should be intercepted
-	 * @param {Function...} callHandler
-	 * @return {Object} { sync: function() {}, async: function() {} }
-	 */
-	intercept: function(matcher, callHandler) {
-		var predicate = matcher;
-		if (typeof(matcher) === 'string') {
-			predicate = function(instance, methodName) {
-				return methodName === matcher;
-			};
-		} else if (Array.isArray(matcher)) {
-			predicate = function(instance, methodName) {
-				return instance instanceof matcher[0] && (!matcher[1] || matcher[1] === methodName);
-			};
-		} else if (typeof(matcher) !== 'function') {
-			matcher = !!matcher;
-			predicate = function() {
-				return matcher;
-			};
-		}
-
-		var handlers = [].slice.call(arguments, 1),
-			handlerConfig = {
-				handlers: handlers,
-				matcher: predicate
-			};
-
-		var container = this;
-		return {
-			sync: function() {
-				handlerConfig.isAsync = false;
-				container.handlerConfigs.push(handlerConfig);
-				return container;
-			},
-			async: function() {
-				handlerConfig.isAsync = true;
-				container.handlerConfigs.push(handlerConfig);
-				return container;
-			}
-		};
-	},
-
-	/**
 	 * Creates a clone of the container in its current state
 	 *
 	 * @param {Boolean} withEvents
 	 * @returns {Container}
 	 */
 	createChildContainer: function(withEvents) {
-		var childContainer = new Container(this),
+		var childContainer = new this.constructor(this),
 			self = this;
 
 		Object.keys(this.registrations).forEach(function(key) {

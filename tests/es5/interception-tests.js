@@ -1,6 +1,6 @@
 var should = require('should'),
 	sahara = require('../../'),
-	Container = sahara.Container,
+	Container = sahara.interception.Container,
 	async = require('../../src/async');
 
 describe('Interception', function() {
@@ -385,6 +385,50 @@ describe('Interception', function() {
 			callHandler2Invocations.should.equal(0);
 			done();
 		});
+	});
+
+	it('should inherit interception configurations from parent', function() {
+		function Foo() {}
+
+		Foo.prototype.bar = function() {};
+
+		var handlerInvoked = false;
+
+		function handler(context, next) {
+			handlerInvoked = true;
+			next();
+		}
+
+		var parent = new Container()
+				.registerType(Foo)
+				.intercept([Foo, 'bar'], handler).sync(),
+			child = parent.createChildContainer();
+
+		child.resolveSync(Foo).bar();
+		handlerInvoked.should.equal(true);
+	});
+
+	it('should not affect parent\'s interception configurations', function() {
+		function Foo() {}
+
+		Foo.prototype.bar = function() {};
+		Foo.prototype.baz = function() {};
+
+		var handlerInvoked = false;
+
+		function handler(context, next) {
+			handlerInvoked = true;
+			next();
+		}
+
+		var parent = new Container()
+				.registerType(Foo)
+				.intercept([Foo, 'bar'], function(_, next) { next(); }).sync(),
+			child = parent.createChildContainer()
+				.intercept([Foo, 'baz'], handler).sync();
+
+		parent.resolveSync(Foo).baz();
+		handlerInvoked.should.equal(false);
 	});
 
 	describe('synchronously', function() {
