@@ -1,119 +1,75 @@
 var noError = null;
 
-module.exports = {
-	each: function(arr, iterator, callback) {
-		var finished = 0;
-		var expected = arr.length;
-		var error = noError;
+function map(arr, iterator, series, callback) {
+	var mapped = new Array(arr.length);
+	var finished = 0;
+	var expected = arr.length;
+	var error = noError;
 
-		if (!expected) {
-			callback(noError);
+	if (!arr.length) {
+		callback(noError, mapped);
+		return;
+	}
+
+	function finish(index, err, result) {
+		finished++;
+
+		if (err) {
+			error = error || err;
+		} else {
+			mapped[index] = result;
+		}
+
+		if (expected === finished) {
+			callback(error, error ? null : mapped);
+		} else if (series) {
+			setImmediate(function() {
+				run(index + 1);
+			}, 1);
+		}
+	}
+
+	function run(index) {
+		var item = arr[index];
+		if (!item) {
+			finish(index);
 			return;
 		}
 
-		function finish(err) {
-			finished++;
-			if (err) {
-				error = error || err;
-			}
+		iterator(item, finish.bind(null, index));
+	}
 
-			if (finished >= expected) {
-				callback(error);
-			}
-		}
+	if (series) {
+		run(0);
+	} else {
+		arr.forEach(function(value, i) {
+			run(i);
+		});
+	}
+}
 
-		arr.forEach(function(value) {
-			iterator(value, finish);
+module.exports = {
+	each: function(arr, iterator, callback) {
+		map(arr, iterator, false, function(err) {
+			callback(err);
 		});
 	},
 
 	map: function(arr, iterator, callback) {
-		var mapped = new Array(arr.length);
-		var error = noError;
-		var finished = 0;
-		var expected = arr.length;
-
-		if (!expected) {
-			callback(noError, mapped);
-			return;
-		}
-
-		function finish(index, err, result) {
-			finished++;
-
-			if (err) {
-				error = error || err;
-			} else {
-				mapped[index] = result;
-			}
-
-			if (expected === finished) {
-				callback(error, error ? null : mapped);
-			}
-		}
-
-		arr.forEach(function(item, index) {
-			iterator(item, finish.bind(null, index));
-		});
+		map(arr, iterator, false, callback);
 	},
 
 	mapSeries: function(arr, iterator, callback) {
-		var mapped = new Array(arr.length);
-
-		if (!arr.length) {
-			callback(noError, mapped);
-			return;
-		}
-
-		function run(index) {
-			var item = arr[index];
-			if (!item) {
-				callback(noError, mapped);
-				return;
-			}
-
-			iterator(item, function(err, result) {
-				if (err) {
-					callback(err);
-					return;
-				}
-
-				mapped[index] = result;
-
-				setImmediate(function() {
-					run(index + 1);
-				}, 1);
-			});
-		}
-
-		run(0);
+		map(arr, iterator, true, callback);
 	},
 
 	series: function(thunks, callback) {
-		if (!thunks.length) {
-			callback(noError);
-			return;
+		function iterator(thunk, next) {
+			thunk(next);
 		}
 
-		function run(index) {
-			var thunk = thunks[index];
-			if (!thunk) {
-				callback(noError);
-				return;
-			}
-
-			thunk(function(err) {
-				if (err) {
-					callback(err);
-					return;
-				}
-
-				setImmediate(function() {
-					run(index + 1);
-				}, 1);
-			});
-		}
-
-		run(0);
+		map(thunks, iterator, true, function(err) {
+			callback(err);
+		});
 	}
 };
