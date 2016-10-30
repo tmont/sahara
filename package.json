@@ -6,6 +6,7 @@
 	"license": "MIT",
 	"files": [
 		"src",
+		"dist/sahara.js",
 		"index.js"
 	],
 
@@ -20,12 +21,17 @@
 	},
 
 	"devDependencies": {
+		"browserify": "13.1.1",
 		"mocha": "3.0.2",
 		"semver": "5.3.0",
-		"should": "11.1.0"
+		"should": "11.1.0",
+		"uglify-js": "2.7.4"
 	},
 
 	"scripts": {
-		"test": "./node_modules/.bin/mocha -R dot tests/run"
+		"test": "./node_modules/.bin/mocha -R dot tests/run",
+		"compile": "node_modules/.bin/browserify --no-builtins --entry src/index.js --standalone sahara --detect-globals false > dist/sahara.js",
+		"minify": "node_modules/.bin/uglifyjs --screw-ie8 --compress --mangle -- dist/sahara.js > dist/sahara.min.js",
+		"build": "npm run compile && npm run minify"
 	}
 }
