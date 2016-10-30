@@ -37,6 +37,15 @@ Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 Sahara supports node 0.10. As of v3.0.0 there is support for ES6 features
 such as classes and fat-arrow functions.
 
+**As of v4.0.0, [interception](#interception) as been moved out of the
+default container. Use `require('sahara').interception.Container` to utilize
+interception.**
+
+### Client
+Include `dist/sahara.js` in your HTML, and access sahara through the global
+`window.sahara` variable. Note that interception is not included in the
+client-side build.
+
 ## Usage
 ### API
 All of these are explained in mind-numbing detail below.
@@ -464,6 +473,9 @@ Interception is a means of intercepting a function call and doing something
 before or after. For example, you could modify the return value, nullify
 an error, perform extra logging, etc.
 
+The default `Container` does not include interception capabilities, you must
+use `sahara.interception.Container` instead.
+
 ### Limitations
 Interception in JavaScript is accomplished by defining a non-writable property
 that wraps a function call. So, if your method is
@@ -584,7 +596,7 @@ function matchBar(instance, methodName) {
 	return methodName === 'bar';
 }
 
-var container = new Container()
+var container = new sahara.interception.Container()
 	.registerType(Foo)
 	.intercept(matchBar, logMethodCalls, addFoo).sync();
 
@@ -605,14 +617,14 @@ The `matcher` argument accepts other things besides a function.
 
 So the example above could be configured more easily:
 ```javascript
-container = new Container()
+container = new sahara.interception.Container()
 	.registerType(Foo)
 	.intercept('bar', logMethodCalls, addFoo).sync();
 ```
 
 Or even better:
 ```javascript
-container = new Container()
+container = new sahara.interception.Container()
 	.registerType(Foo)
 	.intercept([ Foo, 'bar' ], logMethodCalls, addFoo).sync();
 ```
@@ -683,7 +695,7 @@ function Foo() {
 	};
 }
 
-var container = new Container()
+var container = new sahara.interception.Container()
 	.registerType(Foo)
 	.intercept(Foo, matchBar, logMethodCallsAsync).async();
 
@@ -715,7 +727,7 @@ function asyncHandler(context, next) {
 	});
 }
 
-var container = new Container()
+var container = new sahara.interception.Container()
 	.registerType(Foo)
 	.intercept('bar', asyncCallHandler).async();
 
