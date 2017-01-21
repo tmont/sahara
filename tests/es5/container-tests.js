@@ -314,7 +314,8 @@ describe('Container', function() {
 
 			(function() {
 				new Container().registerType(Foo);
-			}).should.throwError('Unable to determine type of parameter at position 1 for type "Foo"');
+			}).should.throwError('Unable to determine type of parameter at ' +
+				'position 1 ("bar") for type "Foo"; are you missing a doc comment?');
 		});
 
 		it('should detect cyclic dependencies', function() {
