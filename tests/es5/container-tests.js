@@ -286,6 +286,23 @@ describe('Container', function() {
 			foo2.bar.should.be.equal(bar);
 		});
 
+		it('should non-alphanumeric characters in type definitions', function() {
+			function Bar() {}
+
+			function Foo(/** razzle-dazzle! */bar) {
+				this.bar = bar;
+			}
+
+			var bar = new Bar(),
+				foo = new Container()
+					.registerInstance(bar, 'razzle-dazzle!')
+					.registerType(Foo)
+					.resolveSync('Foo');
+
+			foo.should.be.instanceOf(Foo);
+			foo.bar.should.be.equal(bar);
+		});
+
 		it('should allow copious whitespace in function definition', function() {
 			function Bar() {}
 			function Foo(
