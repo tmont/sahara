@@ -7,8 +7,8 @@ exports.getTypeInfo = function(ctor, key, ignoreSignature) {
 	}
 
 	var docCommentRegex = [
-		//normal function
-		/^function(?:[\s+](\w+))?\s*\(([^)]*)\)\s*\{/,
+		//normal function or es6 class method
+		/^(?:function\s+)?(?:(\w+))?\s*\(([^)]*)\)\s*\{/,
 		//class with constructor
 		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*\{/,
 		//class without constructor
