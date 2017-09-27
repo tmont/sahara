@@ -1,15 +1,10 @@
-var ObjectBuilder = require('../object-builder'),
-	merge = require('../merge'),
-	Interceptor = require('./interception');
+const ObjectBuilder = require('../object-builder');
+const Interceptor = require('./interception');
 
-function InterceptableObjectBuilder(resolver, resolverSync) {
-	ObjectBuilder.call(this, resolver, resolverSync);
-}
+class InterceptableObjectBuilder extends ObjectBuilder {
 
-merge(InterceptableObjectBuilder.prototype, ObjectBuilder.prototype, {
-	invokeCtor: function(ctor, handlerConfigs, args) {
-		var self = this,
-			instance = ObjectBuilder.prototype.invokeCtor.apply(this, arguments);
+	invokeCtor(ctor, handlerConfigs, args) {
+		const instance = super.invokeCtor(ctor, handlerConfigs, args);
 
 		if (!handlerConfigs.length) {
 			return instance;
@@ -18,9 +13,10 @@ merge(InterceptableObjectBuilder.prototype, ObjectBuilder.prototype, {
 		//create a proxy object that can intercept function calls.
 		//eventually, it may do more than just functions, such as intercepting
 		//getters.
-		for (var key in instance) {
-			var descriptor = Object.getOwnPropertyDescriptor(instance, key),
-				thunk = instance[key];
+		for (const key in instance) {
+			const methodName = key;
+			const descriptor = Object.getOwnPropertyDescriptor(instance, methodName);
+			const thunk = instance[methodName];
 
 			//not able to override this value, carry on
 			if (descriptor && !descriptor.configurable) {
@@ -32,9 +28,9 @@ merge(InterceptableObjectBuilder.prototype, ObjectBuilder.prototype, {
 				continue;
 			}
 
-			var isAsync = null;
-			var matchingConfigs = handlerConfigs.filter(function(data) {
-				var isMatch = data.matcher(instance, key);
+			let isAsync = null;
+			const matchingConfigs = handlerConfigs.filter((data) => {
+				const isMatch = data.matcher(instance, methodName);
 				if (isMatch && isAsync === null) {
 					isAsync = data.isAsync;
 				}
@@ -47,32 +43,32 @@ merge(InterceptableObjectBuilder.prototype, ObjectBuilder.prototype, {
 				continue;
 			}
 
-			var handlers = [];
-			matchingConfigs.forEach(function(data) {
+			const handlers = [];
+			matchingConfigs.forEach((data) => {
 				[].push.apply(handlers, data.handlers);
 			});
 
 			//redefine the property
-			Object.defineProperty(instance, key, {
+			Object.defineProperty(instance, methodName, {
 				writable: false,
-				value: (function(isAsync, methodName, thunk) {
-					var interceptor = new Interceptor(handlers);
-					return function() {
-						self.emit('intercepting', instance, methodName);
-						var handleCall = 'handleCall' + (isAsync ? '' : 'Sync');
+				value: ((isAsync, thunk, methodName) => {
+					const interceptor = new Interceptor(handlers);
+					return (...args) => {
+						this.emit('intercepting', instance, methodName);
+						const handleCall = 'handleCall' + (isAsync ? '' : 'Sync');
 						return interceptor[handleCall](
 							instance,
 							methodName,
-							[].slice.call(arguments),
+							args,
 							thunk
 						);
-					};
-				}(isAsync, key, thunk))
+					}
+				})(isAsync, thunk, methodName)
 			});
 		}
 
 		return instance;
-	},
-});
+	}
+}
 
 module.exports = InterceptableObjectBuilder;

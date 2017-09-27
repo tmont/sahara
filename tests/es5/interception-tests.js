@@ -34,16 +34,25 @@ describe('Interception', function() {
 	});
 
 	it('should intercept methods on the prototype', function() {
-		function Foo() {}
-
-		Foo.prototype = {
-			bar: function() {}
+		function ParentFoo() {}
+		ParentFoo.prototype = {
+			ancestor: function() {}
 		};
+		function Foo() {}
+		Foo.prototype = new ParentFoo();
 
-		var invocations = 0;
+		Foo.prototype.bar = function() {};
+
+		var barInvocations = 0;
+		var ancestorInvocations = 0;
 
 		function callHandler(context, next) {
-			invocations++;
+			if (context.methodName === 'bar') {
+				barInvocations++;
+			} else if (context.methodName === 'ancestor') {
+				ancestorInvocations++;
+			}
+
 			next();
 		}
 
@@ -53,7 +62,11 @@ describe('Interception', function() {
 			.resolveSync(Foo);
 
 		resolved.bar();
-		invocations.should.equal(1);
+		barInvocations.should.equal(1);
+		ancestorInvocations.should.equal(0);
+		resolved.ancestor();
+		barInvocations.should.equal(1);
+		ancestorInvocations.should.equal(1);
 	});
 
 	it('should emit events', function() {

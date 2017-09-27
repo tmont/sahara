@@ -34,12 +34,13 @@ calls.
 ## Installation
 Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
 
-Sahara supports node 0.10. As of v3.0.0 there is support for ES6 features
-such as classes and fat-arrow functions.
+**As of v5.0.0, there is no support for Node < v8.0.0. Use v4.x for node v0.10-v7**
 
-**As of v4.0.0, [interception](#interception) as been moved out of the
+As of v4.0.0, [interception](#interception) as been moved out of the
 default container. Use `require('sahara').interception.Container` to utilize
-interception.**
+interception.
+
+As of v3.0.0 there is support for ES6 features such as classes and fat-arrow functions.
 
 ### Client
 Include `dist/sahara.js` in your HTML, and access sahara through the global

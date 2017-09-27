@@ -1,20 +1,20 @@
-function Interceptor(handlers) {
-	this.handlers = handlers;
-}
+class Interceptor {
+	constructor(handlers) {
+		this.handlers = handlers;
+	}
 
-Interceptor.prototype = {
-	handleCallSync: function(instance, methodName, args, thunk) {
-		var handlers = this.handlers,
-			context = {
-				instance: instance,
-				methodName: methodName,
-				arguments: args,
-				error: null,
-				returnValue: undefined
-			};
+	handleCallSync(instance, methodName, args, thunk) {
+		const handlers = this.handlers;
+		const context = {
+			instance: instance,
+			methodName: methodName,
+			arguments: args,
+			error: null,
+			returnValue: undefined
+		};
 
-		function next(index) {
-			var handler = handlers[index];
+		const next = (index) => {
+			const handler = handlers[index];
 			return function() {
 				if (!handler) {
 					if (context.error) {
@@ -31,7 +31,7 @@ Interceptor.prototype = {
 
 				handler(context, next(index + 1));
 			};
-		}
+		};
 
 		next(0)();
 
@@ -40,19 +40,19 @@ Interceptor.prototype = {
 		}
 
 		return context.returnValue;
-	},
+	}
 
-	handleCall: function(instance, methodName, args, thunk) {
-		var handlers = this.handlers,
-			context = {
-				instance: instance,
-				methodName: methodName,
-				arguments: args,
-				error: null,
-				returnValue: undefined
-			};
+	handleCall(instance, methodName, args, thunk) {
+		const handlers = this.handlers;
+		const context = {
+			instance: instance,
+			methodName: methodName,
+			arguments: args,
+			error: null,
+			returnValue: undefined
+		};
 
-		function runNestedCallbacks(next, callback) {
+		const runNestedCallbacks = (next, callback) => {
 			return function(done) {
 				if (next) {
 					next(function() {
@@ -68,17 +68,17 @@ Interceptor.prototype = {
 					done();
 				}
 			};
-		}
+		};
 
-		function getNextHandler(index, next) {
-			var handler = handlers[index];
-			return function(callback) {
+		const getNextHandler = (index, next) => {
+			const handler = handlers[index];
+			return (callback) => {
 				if (!handler) {
 					//terminating condition, all handlers have been executed, so
 					//run the original function
 
-					var args = context.arguments,
-						userCallback;
+					const args = context.arguments;
+					let userCallback;
 
 					//assume last argument is the callback
 					if (typeof(args[args.length - 1]) === 'function') {
@@ -86,14 +86,14 @@ Interceptor.prototype = {
 						userCallback = args.pop();
 					}
 
-					function runCallbacks(extraArgs) {
+					const runCallbacks = (extraArgs) => {
 						function runUserCallback() {
-							var callbackArgs = [ context.error, context.returnValue ].concat(extraArgs || []);
+							const callbackArgs = [ context.error, context.returnValue ].concat(extraArgs || []);
 							userCallback && userCallback.apply(null, callbackArgs);
 						}
 
 						runNestedCallbacks(next, callback)(runUserCallback);
-					}
+					};
 
 					if (context.error) {
 						//don't run original function if the error is already set
@@ -118,10 +118,10 @@ Interceptor.prototype = {
 
 				handler(context, getNextHandler(index + 1, runNestedCallbacks(next, callback)));
 			};
-		}
+		};
 
 		getNextHandler(0)();
 	}
-};
+}
 
 module.exports = Interceptor;

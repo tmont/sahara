@@ -1,4 +1,4 @@
-var exports = require('./src');
+const exports = require('./src');
 exports.interception = {
 	Container: require('./src/interception/container')
 };

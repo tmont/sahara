@@ -1,25 +1,24 @@
-function MemoryLifetime() {
-	this.value = null;
-}
+class MemoryLifetime {
+	constructor() {
+		this.value = null;
+	}
 
-MemoryLifetime.prototype = {
-	fetch: function() {
+	fetch() {
 		return this.value;
-	},
+	}
 
-	store: function(value) {
+	store(value) {
 		this.value = value;
 	}
-};
+}
 
-function TransientLifetime() {}
-TransientLifetime.prototype = {
-	fetch: function() {
+class TransientLifetime {
+	fetch() {
 		return null;
-	},
+	}
 
-	store: function(value) {}
-};
+	store(value) {}
+}
 
 module.exports = {
 	Memory: MemoryLifetime,

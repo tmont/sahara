@@ -1,62 +1,53 @@
-var Container = require('../container'),
-	InterceptableObjectBuilder = require('./object-builder'),
-	merge = require('../merge');
+const Container = require('../container');
+const InterceptableObjectBuilder = require('./object-builder');
 
-function InterceptableContainer() {
-	Container.apply(this, arguments);
+class InterceptableContainer extends Container {
+	constructor(parent) {
+		super(parent);
+		this.builder = new InterceptableObjectBuilder(
+			this.resolve.bind(this),
+			this.resolveSync.bind(this)
+		);
+	}
 
-	this.builder = new InterceptableObjectBuilder(
-		this.resolve.bind(this),
-		this.resolveSync.bind(this)
-	);
-}
-
-merge(InterceptableContainer.prototype, Container.prototype, {
 	/**
 	 * Configures interception
 	 *
 	 * @param {Function|Boolean|String|Array} matcher A predicate to determine if the
 	 * function should be intercepted
-	 * @param {Function...} callHandler
+	 * @param {Function...} callHandlers
 	 * @return {Object} { sync: function() {}, async: function() {} }
 	 */
-	intercept: function(matcher, callHandler) {
-		var predicate = matcher;
+	intercept(matcher, ...callHandlers) {
+		let predicate = matcher;
 		if (typeof(matcher) === 'string') {
-			predicate = function(instance, methodName) {
-				return methodName === matcher;
-			};
+			predicate = (instance, methodName) => methodName === matcher;
 		} else if (Array.isArray(matcher)) {
-			predicate = function(instance, methodName) {
+			predicate = (instance, methodName) => {
 				return instance instanceof matcher[0] && (!matcher[1] || matcher[1] === methodName);
 			};
 		} else if (typeof(matcher) !== 'function') {
-			matcher = !!matcher;
-			predicate = function() {
-				return matcher;
-			};
+			predicate = () => !!matcher
 		}
 
-		var handlers = [].slice.call(arguments, 1),
-			handlerConfig = {
-				handlers: handlers,
-				matcher: predicate
-			};
+		const handlerConfig = {
+			handlers: callHandlers,
+			matcher: predicate
+		};
 
-		var container = this;
 		return {
-			sync: function() {
+			sync: () => {
 				handlerConfig.isAsync = false;
-				container.handlerConfigs.push(handlerConfig);
-				return container;
+				this.handlerConfigs.push(handlerConfig);
+				return this;
 			},
-			async: function() {
+			async: () => {
 				handlerConfig.isAsync = true;
-				container.handlerConfigs.push(handlerConfig);
-				return container;
+				this.handlerConfigs.push(handlerConfig);
+				return this;
 			}
 		};
 	}
-});
+}
 
 module.exports = InterceptableContainer;

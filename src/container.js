@@ -1,19 +1,16 @@
-var Graph = require('tarjan-graph'),
-	ObjectBuilder = require('./object-builder'),
-	lifetimes = require('./lifetime'),
-	async = require('./async'),
-	merge = require('./merge'),
-	EventEmitter = require('./event-emitter'),
-	utils = require('./util');
+const Graph = require('tarjan-graph');
+const ObjectBuilder = require('./object-builder');
+const lifetimes = require('./lifetime');
+const async = require('./async');
+const EventEmitter = require('./event-emitter');
+const utils = require('./util');
 
 function createUnregisteredError(key, context) {
-	var message = 'Nothing with key "' + key + '" is registered in the container';
+	let message = 'Nothing with key "' + key + '" is registered in the container';
 	if (context && context.history.length) {
 		message += '; error occurred while resolving ';
 		message += context.history.concat([{ name: key }])
-			.map(function(registration) {
-				return '"' + registration.name + '"';
-			})
+			.map((registration) => `"${registration.name}"`)
 			.join(' -> ');
 	}
 
@@ -38,7 +35,7 @@ function resolveSignatureToOptions(args) {
 		return args[0];
 	}
 
-	var options = {};
+	const options = {};
 	if (typeof(args[0]) === 'string') {
 		options.key = args[0];
 	}
@@ -58,42 +55,50 @@ function getKeyFromInstance(instance) {
 	return instance && instance.constructor && instance.constructor.name;
 }
 
-function Registration(name, lifetime, injections) {
-	this.name = name;
-	this.lifetime = lifetime || new lifetimes.Transient();
-	this.injections = injections || [];
+class Registration {
+	constructor(name, lifetime, injections) {
+		this.name = name;
+		this.lifetime = lifetime || new lifetimes.Transient();
+		this.injections = injections || [];
+	}
 }
 
-function TypeRegistration(name, lifetime, injections, typeInfo) {
-	Registration.call(this, name, lifetime, injections);
-	this.typeInfo = typeInfo;
+class TypeRegistration extends Registration {
+	constructor(name, lifetime, injections, typeInfo) {
+		super(name, lifetime, injections);
+		this.typeInfo = typeInfo;
+	}
 }
 
-function InstanceRegistration(name, lifetime, injections, instance) {
-	Registration.call(this, name, lifetime, injections);
-	this.instance = instance;
+class InstanceRegistration extends Registration {
+	constructor(name, lifetime, injections, instance) {
+		super(name, lifetime, injections);
+		this.instance = instance;
+	}
 }
 
-function FactoryRegistration(name, lifetime, injections, factory) {
-	Registration.call(this, name, lifetime, injections);
-	this.factory = factory;
+class FactoryRegistration extends Registration {
+	constructor(name, lifetime, injections, factory) {
+		super(name, lifetime, injections);
+		this.factory = factory;
+	}
 }
 
-function Container(parent) {
-	EventEmitter.call(this);
-	this.parent = parent || null;
-	this.registrations = {};
-	this.handlerConfigs = [];
-	this.graph = new Graph();
-	this.builder = new ObjectBuilder(
-		this.resolve.bind(this),
-		this.resolveSync.bind(this)
-	);
+class Container extends EventEmitter {
+	constructor(parent) {
+		super();
+		this.parent = parent || null;
+		this.registrations = {};
+		this.handlerConfigs = [];
+		this.graph = new Graph();
+		this.builder = new ObjectBuilder(
+			this.resolve.bind(this),
+			this.resolveSync.bind(this)
+		);
 
-	this.registerInstance(this);
-}
+		this.registerInstance(this);
+	}
 
-merge(Container.prototype, EventEmitter.prototype, {
 	/**
 	 * Registers a type from a constructor
 	 *
@@ -104,10 +109,10 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerType: function(ctor, key, lifetime, injections) {
-		var options = resolveSignatureToOptions(arguments);
-		var typeInfo = utils.getTypeInfo(ctor, options.key),
-			typeName = typeInfo.name;
+	registerType(ctor, key, lifetime, injections) {
+		const options = resolveSignatureToOptions(arguments);
+		const typeInfo = utils.getTypeInfo(ctor, options.key);
+		const typeName = typeInfo.name;
 
 		this.emit('registering', typeName, 'type');
 		this.registrations[typeName] = new TypeRegistration(
@@ -118,15 +123,13 @@ merge(Container.prototype, EventEmitter.prototype, {
 		);
 
 		try {
-			this.graph.addAndVerify(typeName, typeInfo.args.map(function(info) {
-				return info.type;
-			}));
+			this.graph.addAndVerify(typeName, typeInfo.args.map(info => info.type));
 		} catch (e) {
 			throw new Error(typeName + '\'s dependencies create a cycle: ' + e.message);
 		}
 
 		return this;
-	},
+	}
 
 	/**
 	 * Registers a specific instance of a type
@@ -138,8 +141,8 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerInstance: function(instance, key, lifetime, injections) {
-		var options = resolveSignatureToOptions(arguments);
+	registerInstance(instance, key, lifetime, injections) {
+		const options = resolveSignatureToOptions(arguments);
 		options.key = options.key || getKeyFromInstance(instance);
 		this.emit('registering', options.key, 'instance');
 		this.registrations[options.key] = new InstanceRegistration(
@@ -150,7 +153,7 @@ merge(Container.prototype, EventEmitter.prototype, {
 		);
 
 		return this;
-	},
+	}
 
 	/**
 	 * Registers a factory function for a type that will create
@@ -164,8 +167,8 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Object...} [injections] Injections to perform upon resolution
 	 * @return {Container}
 	 */
-	registerFactory: function(factory, key, lifetime, injections) {
-		var options = resolveSignatureToOptions(arguments);
+	registerFactory(factory, key, lifetime, injections) {
+		const options = resolveSignatureToOptions(arguments);
 		if (!options.key) {
 			throw new Error('"options.key" must be passed to registerFactory()');
 		}
@@ -178,20 +181,20 @@ merge(Container.prototype, EventEmitter.prototype, {
 			factory
 		);
 		return this;
-	},
+	}
 
 	/**
 	 * Determines if something is registered with the given key
 	 * @param {String|Function} key The resolution key or constructor
 	 * @return {Boolean}
 	 */
-	isRegistered: function(key) {
+	isRegistered(key) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
 
 		return !!this.registrations[key];
-	},
+	}
 
 	/**
 	 * Resolves a type to an instance
@@ -200,7 +203,7 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Object} [context]
 	 * @param {Function} callback
 	 */
-	resolve: function(key, context, callback) {
+	resolve(key, context, callback) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
@@ -213,7 +216,7 @@ merge(Container.prototype, EventEmitter.prototype, {
 		context = context || createResolverContext();
 
 		this.emit('resolving', key);
-		var registration = this.registrations[key];
+		const registration = this.registrations[key];
 		if (!registration) {
 			callback(createUnregisteredError(key, context));
 			return;
@@ -221,15 +224,14 @@ merge(Container.prototype, EventEmitter.prototype, {
 
 		context.history.push(registration);
 
-		var existing = registration.lifetime.fetch();
+		const existing = registration.lifetime.fetch();
 		if (existing) {
 			this.emit('resolved', key, existing);
 			callback(null, existing);
 			return;
 		}
 
-		var self = this;
-		function injectAndReturn(err, instance) {
+		const injectAndReturn = (err, instance) => {
 			if (err) {
 				callback(err);
 				return;
@@ -237,15 +239,15 @@ merge(Container.prototype, EventEmitter.prototype, {
 
 			context.history.pop();
 
-			self.inject(instance, key, function(err) {
+			this.inject(instance, key, (err) => {
 				if (!err) {
 					registration.lifetime.store(instance);
 				}
 
-				self.emit('resolved', key, instance);
+				this.emit('resolved', key, instance);
 				callback(err, instance);
 			});
-		}
+		};
 
 		if (registration instanceof InstanceRegistration) {
 			injectAndReturn(null, registration.instance);
@@ -254,7 +256,7 @@ merge(Container.prototype, EventEmitter.prototype, {
 		} else if (registration instanceof FactoryRegistration) {
 			registration.factory(this, injectAndReturn);
 		}
-	},
+	}
 
 	/**
 	 * Resolve a type to an instance synchronously
@@ -263,13 +265,13 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Object} [context] Resolver context used internally
 	 * @return {*} The resolved object
 	 */
-	resolveSync: function(key, context) {
+	resolveSync(key, context) {
 		if (typeof(key) === 'function') {
 			key = getKeyFromCtor(key);
 		}
 		context = context || createResolverContext();
 
-		var registration = this.registrations[key];
+		const registration = this.registrations[key];
 		this.emit('resolving', key);
 		if (!registration) {
 			throw createUnregisteredError(key, context);
@@ -277,13 +279,13 @@ merge(Container.prototype, EventEmitter.prototype, {
 
 		context.history.push(registration);
 
-		var existing = registration.lifetime.fetch();
+		const existing = registration.lifetime.fetch();
 		if (existing) {
 			this.emit('resolved', key, existing);
 			return existing;
 		}
 
-		var instance;
+		let instance;
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
@@ -298,20 +300,20 @@ merge(Container.prototype, EventEmitter.prototype, {
 		registration.lifetime.store(instance);
 		this.emit('resolved', key, instance);
 		return instance;
-	},
+	}
 
 	/**
 	 * Same as resolveSync(), but won't ever throw
 	 * @param key
 	 * @return {*} The resolved object, or undefined if the key doesn't exist
 	 */
-	tryResolveSync: function(key) {
+	tryResolveSync(key) {
 		try {
 			return this.resolveSync(key);
 		} catch (e) {
 			return undefined;
 		}
-	},
+	}
 
 	/**
 	 * Performs injection on an object
@@ -320,19 +322,18 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {String} key The resolution key; defaults to instance.constructor.name
 	 * @param {Function} callback
 	 */
-	inject: function(instance, key, callback) {
+	inject(instance, key, callback) {
 		key = key || getKeyFromInstance(instance);
-		var registration = this.registrations[key];
+		const registration = this.registrations[key];
 		if (!registration) {
 			callback(createUnregisteredError(key));
 			return;
 		}
 
-		var self = this;
-		async.each(registration.injections, function(injection, next) {
-			injection.inject(instance, self, next);
+		async.each(registration.injections, (injection, next) => {
+			injection.inject(instance, this, next);
 		}, callback);
-	},
+	}
 
 	/**
 	 * Performs injection on an object synchronously
@@ -340,18 +341,17 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {*} instance The object to perform injection on
 	 * @param {String} [key] The resolution key; defaults to instance.constructor.name
 	 */
-	injectSync: function(instance, key) {
+	injectSync(instance, key) {
 		key = key || getKeyFromInstance(instance);
-		var registration = this.registrations[key];
+		const registration = this.registrations[key];
 		if (!registration) {
 			throw createUnregisteredError(key);
 		}
 
-		var self = this;
-		registration.injections.forEach(function(injection) {
-			injection.injectSync(instance, self);
+		registration.injections.forEach((injection) => {
+			injection.injectSync(instance, this);
 		});
-	},
+	}
 
 	/**
 	 * Creates a clone of the container in its current state
@@ -359,12 +359,11 @@ merge(Container.prototype, EventEmitter.prototype, {
 	 * @param {Boolean} withEvents
 	 * @returns {Container}
 	 */
-	createChildContainer: function(withEvents) {
-		var childContainer = new this.constructor(this),
-			self = this;
+	createChildContainer(withEvents) {
+		const childContainer = new this.constructor(this);
 
-		Object.keys(this.registrations).forEach(function(key) {
-			childContainer.registrations[key] = self.registrations[key];
+		Object.keys(this.registrations).forEach((key) => {
+			childContainer.registrations[key] = this.registrations[key];
 		});
 
 		childContainer.graph = this.graph.clone();
@@ -374,14 +373,14 @@ merge(Container.prototype, EventEmitter.prototype, {
 		});
 
 		if (withEvents) {
-			[ 'registering', 'resolving', 'resolved' ].forEach(function(event) {
-				self.listeners(event).forEach(function(listener) {
+			[ 'registering', 'resolving', 'resolved' ].forEach((event) => {
+				this.listeners(event).forEach((listener) => {
 					childContainer.on(event, listener);
 				});
 			});
 
-			[ 'building', 'built', 'intercepting' ].forEach(function(event) {
-				self.builder.listeners(event).forEach(function(listener) {
+			[ 'building', 'built', 'intercepting' ].forEach((event) => {
+				this.builder.listeners(event).forEach((listener) => {
 					childContainer.builder.on(event, listener);
 				});
 			});
@@ -389,6 +388,6 @@ merge(Container.prototype, EventEmitter.prototype, {
 
 		return childContainer;
 	}
-});
+}
 
 module.exports = Container;
