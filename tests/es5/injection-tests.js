@@ -1,7 +1,8 @@
-var should = require('should'),
-	sahara = require('../../'),
-	Container = sahara.Container,
-	inject = sahara.inject;
+const should = require('should');
+const sahara = require('../../');
+const Container = sahara.Container;
+const inject = sahara.inject;
+const { asyncTest, shouldReject } = require('../async-helpers');
 
 describe('Injection', function() {
 	it('should inject property with value', function() {
@@ -9,9 +10,9 @@ describe('Injection', function() {
 			this.name = null;
 		}
 
-		var container = new Container();
+		const container = new Container();
 		container.registerType(Foo, { injections: [ inject.propertyValue('name', 'bar') ] });
-		var instance = container.resolveSync('Foo');
+		const instance = container.resolveSync('Foo');
 		instance.should.be.instanceOf(Foo);
 		instance.should.have.property('name', 'bar');
 	});
@@ -23,11 +24,11 @@ describe('Injection', function() {
 
 		function Bar() {}
 
-		var container = new Container()
+		const container = new Container()
 			.registerType(Foo, { injections: [ inject.property('bar', 'Bar') ] })
 			.registerType(Bar);
 
-		var instance = container.resolveSync('Foo');
+		const instance = container.resolveSync('Foo');
 		instance.should.be.instanceOf(Foo);
 		instance.should.have.property('bar');
 		instance.bar.should.be.instanceOf(Bar);
@@ -42,10 +43,10 @@ describe('Injection', function() {
 			};
 		}
 
-		var container = new Container()
+		const container = new Container()
 			.registerType(Foo, { injections: [ inject.method('method', [ 'bat', 'baz' ]) ] });
 
-		var instance = container.resolveSync('Foo');
+		const instance = container.resolveSync('Foo');
 		instance.should.be.instanceOf(Foo);
 		instance.should.have.property('foo', 'bat');
 		instance.should.have.property('bar', 'baz');
@@ -63,12 +64,12 @@ describe('Injection', function() {
 		function Bar() {}
 		function Baz() {}
 
-		var container = new Container()
+		const container = new Container()
 			.registerType(Foo, { injections: [ inject.method('method') ] })
 			.registerType(Bar)
 			.registerType(Baz);
 
-		var instance = container.resolveSync('Foo');
+		const instance = container.resolveSync('Foo');
 		instance.should.be.instanceOf(Foo);
 		instance.bar.should.be.instanceOf(Bar);
 		instance.baz.should.be.instanceOf(Baz);
@@ -84,41 +85,35 @@ describe('Injection', function() {
 	});
 
 	describe('async', function() {
-		it('should inject property with value', function(done) {
+		it('should inject property with value', asyncTest(async () => {
 			function Foo() {
 				this.name = null;
 			}
 
-			var container = new Container();
+			const container = new Container();
 			container.registerType(Foo, { injections: [ inject.propertyValue('name', 'bar') ] });
-			container.resolve('Foo', function(err, resolved) {
-				should.not.exist(err);
-				resolved.should.be.instanceOf(Foo);
-				resolved.should.have.property('name', 'bar');
-				done();
-			});
-		});
+			const resolved = await container.resolve('Foo');
+			resolved.should.be.instanceOf(Foo);
+			resolved.should.have.property('name', 'bar');
+		}));
 
-		it('should inject property', function(done) {
+		it('should inject property', asyncTest(async () => {
 			function Foo() {
 				this.bar = null;
 			}
 
 			function Bar() {}
 
-			var container = new Container()
+			const container = new Container()
 				.registerType(Foo, { injections: [ inject.property('bar', 'Bar') ] })
 				.registerType(Bar);
 
-			container.resolve('Foo', function(err, resolved) {
-				resolved.should.be.instanceOf(Foo);
-				resolved.should.have.property('bar');
-				resolved.bar.should.be.instanceOf(Bar);
-				done();
-			});
-		});
+			const resolved = await container.resolve('Foo');
+			resolved.should.have.property('bar');
+			resolved.bar.should.be.instanceOf(Bar);
+		}));
 
-		it('should inject method with args', function(done) {
+		it('should inject method with args', asyncTest(async () => {
 			function Foo() {
 				this.foo = this.bar = null;
 				this.method = function(foo, bar) {
@@ -127,18 +122,16 @@ describe('Injection', function() {
 				};
 			}
 
-			var container = new Container()
+			const container = new Container()
 				.registerType(Foo, { injections: [ inject.method('method', [ 'bat', 'baz' ]) ] });
 
-			container.resolve('Foo', function(err, resolved) {
-				resolved.should.be.instanceOf(Foo);
-				resolved.should.have.property('foo', 'bat');
-				resolved.should.have.property('bar', 'baz');
-				done();
-			});
-		});
+			const resolved = await container.resolve('Foo');
+			resolved.should.be.instanceOf(Foo);
+			resolved.should.have.property('foo', 'bat');
+			resolved.should.have.property('bar', 'baz');
+		}));
 
-		it('should inject method', function(done) {
+		it('should inject method', asyncTest(async () => {
 			function Foo() {
 				this.bar = this.baz = null;
 				this.method = function(/** Bar */bar, /** Baz */baz) {
@@ -150,30 +143,24 @@ describe('Injection', function() {
 			function Bar() {}
 			function Baz() {}
 
-			var container = new Container()
+			const container = new Container()
 				.registerType(Foo, { injections: [ inject.method('method') ] })
 				.registerType(Bar)
 				.registerType(Baz);
 
-			container.resolve(Foo, function(err, resolved) {
-				resolved.should.be.instanceOf(Foo);
-				resolved.bar.should.be.instanceOf(Bar);
-				resolved.baz.should.be.instanceOf(Baz);
-				done();
-			});
-		});
+			const resolved = await container.resolve(Foo);
+			resolved.should.be.instanceOf(Foo);
+			resolved.bar.should.be.instanceOf(Bar);
+			resolved.baz.should.be.instanceOf(Baz);
+		}));
 
-		it('should raise error if method does not exist', function(done) {
+		it('should raise error if method does not exist', asyncTest(async () => {
 			function Foo() {}
-			var message = 'Cannot perform method injection because the object does not have a method "asdf"';
-			var container = new Container()
+			const message = 'Cannot perform method injection because the object does not have a method "asdf"';
+			const container = new Container()
 				.registerType(Foo, { injections: [ inject.method('asdf') ] });
 
-			container.resolve(Foo, function(err) {
-				err.should.be.instanceOf(Error);
-				err.should.have.property('message', message);
-				done();
-			});
-		});
+			await shouldReject(container.resolve(Foo), message);
+		}));
 	});
 });

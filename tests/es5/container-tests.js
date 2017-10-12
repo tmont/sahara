@@ -1,21 +1,21 @@
-var should = require('should'),
-	sahara = require('../../'),
-	Container = sahara.Container;
+const should = require('should');
+const sahara = require('../../');
+const Container = sahara.Container;
+const { asyncTest, shouldReject } = require('../async-helpers');
 
-describe('Container', function() {
-
-	it('should throw if type is not registered', function() {
+describe('Container', () => {
+	it('should throw if type is not registered', () => {
 		(function() { new Container().resolveSync('Foo'); })
 			.should
 			.throwError('Nothing with key "Foo" is registered in the container');
 	});
 
-	it('should show pretty message for sync resolution errors', function() {
+	it('should show pretty message for sync resolution errors', () => {
 		function Foo(/** Baz */baz, /** Bar */bar) {}
 		function Bar(/** Baz */baz, /** Bat */bat) {}
 		function Baz() {}
 
-		var container = new Container()
+		const container = new Container()
 			.registerType(Foo)
 			.registerType(Bar)
 			.registerType(Baz);
@@ -25,40 +25,38 @@ describe('Container', function() {
 			.throwError('Nothing with key "Bat" is registered in the container; error occurred while resolving "Foo" -> "Bar" -> "Bat"');
 	});
 
-	it('should show pretty message for async resolution errors', function(done) {
+	it('should show pretty message for async resolution errors', asyncTest(async () => {
 		function Foo(/** Baz */baz, /** Bar */bar) {}
 		function Bar(/** Baz */baz, /** Bat */bat) {}
 		function Baz() {}
 
-		var container = new Container()
+		const container = new Container()
 			.registerType(Foo)
 			.registerType(Bar)
 			.registerType(Baz);
 
-		container.resolve(Foo, function(err, instance) {
-			should.exist(err);
-			should.not.exist(instance);
-			err.message.should.equal('Nothing with key "Bat" is registered in the container; error occurred while resolving "Foo" -> "Bar" -> "Bat"');
-			done();
-		});
-	});
+		const expectedMessage = 'Nothing with key "Bat" is registered in the container; ' +
+			'error occurred while resolving "Foo" -> "Bar" -> "Bat"';
+
+		await shouldReject(container.resolve(Foo), expectedMessage);
+	}));
 
 	it('should not throw if key does not exist for tryResolveSync()', function() {
 		(function() {
-			var resolved = new Container().tryResolveSync('foo');
+			const resolved = new Container().tryResolveSync('foo');
 			should.strictEqual(resolved, undefined);
 		}).should.not.throwError();
 	});
 
 	it('should register itself', function() {
-		var container = new Container();
+		const container = new Container();
 		container.resolveSync('Container').should.equal(container);
 	});
 
 	it('should determine if something is registered', function() {
 		function foo() {}
 
-		var container = new Container().registerType(foo);
+		const container = new Container().registerType(foo);
 
 		container.isRegistered('foo').should.equal(true);
 		container.isRegistered(foo).should.equal(true);
@@ -69,10 +67,10 @@ describe('Container', function() {
 		it('should resolve from constructor instead of key', function() {
 			function Foo() {}
 
-			var instance = new Foo(),
-				resolved = new Container()
-					.registerInstance(instance)
-					.resolveSync(Foo);
+			const instance = new Foo();
+			const resolved = new Container()
+				.registerInstance(instance)
+				.resolveSync(Foo);
 
 			resolved.should.equal(instance);
 		});
@@ -80,17 +78,17 @@ describe('Container', function() {
 		it('should allow explicit key instead of options.key', function() {
 			function Foo() {}
 
-			var instance = new Foo(),
-				resolved = new Container()
-					.registerInstance(instance, 'asdf')
-					.resolveSync('asdf');
+			const instance = new Foo();
+			const resolved = new Container()
+				.registerInstance(instance, 'asdf')
+				.resolveSync('asdf');
 
 			resolved.should.equal(instance);
 		});
 
 		it('should allow explicit lifetime instead of options.lifetime', function() {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				store: function(value) {
 					value.should.equal('foo');
 					storeCalled = true;
@@ -100,9 +98,9 @@ describe('Container', function() {
 				}
 			};
 
-			var resolved = new Container()
-					.registerInstance('foo', 'asdf', lifetime)
-					.resolveSync('asdf');
+			const resolved = new Container()
+				.registerInstance('foo', 'asdf', lifetime)
+				.resolveSync('asdf');
 
 			resolved.should.equal('foo');
 			fetchCalled.should.equal(true, 'lifetime.fetch() was not called');
@@ -115,10 +113,10 @@ describe('Container', function() {
 				this.bar = null;
 			}
 
-			var injection1 = sahara.inject.propertyValue('foo', 'hello'),
-				injection2 = sahara.inject.propertyValue('bar', 'world');
+			const injection1 = sahara.inject.propertyValue('foo', 'hello');
+			const injection2 = sahara.inject.propertyValue('bar', 'world');
 
-			var resolved = new Container()
+			const resolved = new Container()
 				.registerType(Foo, null, null, injection1, injection2)
 				.resolveSync(Foo);
 
@@ -131,27 +129,27 @@ describe('Container', function() {
 	describe('registration from instance', function() {
 		it('should register and resolve instance', function() {
 			function Foo() {}
-			var instance = new Foo(),
-				resolved = new Container()
-					.registerInstance(instance)
-					.resolveSync('Foo');
+			const instance = new Foo();
+			const resolved = new Container()
+				.registerInstance(instance)
+				.resolveSync('Foo');
 
 			resolved.should.equal(instance);
 		});
 
 		it('should register and resolve instance with specified key', function() {
 			function Foo() {}
-			var instance = new Foo(),
-				resolved = new Container()
-					.registerInstance(instance, { key: 'asdf' })
-					.resolveSync('asdf');
+			const instance = new Foo();
+			const resolved = new Container()
+				.registerInstance(instance, { key: 'asdf' })
+				.resolveSync('asdf');
 
 			resolved.should.equal(instance);
 		});
 
 		it('should use lifetime', function() {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -172,36 +170,36 @@ describe('Container', function() {
 
 	describe('registration from factory', function() {
 		it('should register and resolve factory', function() {
-			var instance = {},
-				resolved = new Container()
-					.registerFactory(function() { return instance; }, { key: 'poopoo' })
-					.resolveSync('poopoo');
+			const instance = {};
+			const resolved = new Container()
+				.registerFactory(() => instance, { key: 'poopoo' })
+				.resolveSync('poopoo');
 
 			resolved.should.equal(instance);
 		});
 
 		it('should throw if key is not provided', function() {
-			(function() { new Container().registerFactory(function() {}); })
+			(function() { new Container().registerFactory(() => {}); })
 				.should
 				.throwError('"options.key" must be passed to registerFactory()');
 		});
 
 		it('should pass container into factory function', function() {
-			var instance = {},
-				resolved = new Container()
-					.registerFactory(function(container) {
-						should.exist(container);
-						container.should.be.instanceOf(Container);
-						return instance;
-					}, { key: 'poopoo' })
-					.resolveSync('poopoo');
+			const instance = {};
+			const resolved = new Container()
+				.registerFactory((container) => {
+					should.exist(container);
+					container.should.be.instanceOf(Container);
+					return instance;
+				}, { key: 'poopoo' })
+				.resolveSync('poopoo');
 
 			resolved.should.equal(instance);
 		});
 
 		it('should use lifetime', function() {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -212,7 +210,7 @@ describe('Container', function() {
 			};
 
 			new Container()
-				.registerFactory(function() { return 'foo'; }, { key: 'foo', lifetime: lifetime })
+				.registerFactory(() => 'foo', { key: 'foo', lifetime: lifetime })
 				.resolveSync('foo');
 
 			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
@@ -241,7 +239,7 @@ describe('Container', function() {
 
 		it('should use specified key even if named function given', function() {
 			function Foo() {}
-			var instance = new Container()
+			const instance = new Container()
 				.registerType(Foo, { key: 'Lolz' })
 				.resolveSync('Lolz');
 
@@ -249,8 +247,8 @@ describe('Container', function() {
 		});
 
 		it('should use specified key if anonymous function given', function() {
-			var foo = function() {};
-			var instance = new Container()
+			const foo = function() {};
+			const instance = new Container()
 				.registerType(foo, { key: 'Lolz' })
 				.resolveSync('Lolz');
 
@@ -263,11 +261,11 @@ describe('Container', function() {
 				this.bar = bar;
 			}
 
-			var bar = new Bar(),
-				foo = new Container()
-					.registerInstance(bar)
-					.registerType(Foo)
-					.resolveSync('Foo');
+			const bar = new Bar();
+			const foo = new Container()
+				.registerInstance(bar)
+				.registerType(Foo)
+				.resolveSync('Foo');
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.be.equal(bar);
@@ -277,7 +275,7 @@ describe('Container', function() {
 				this.bar = bar;
 			}
 
-			var foo2 = new Container()
+			const foo2 = new Container()
 				.registerInstance(bar)
 				.registerType(Foo2)
 				.resolveSync('Foo2');
@@ -286,18 +284,18 @@ describe('Container', function() {
 			foo2.bar.should.be.equal(bar);
 		});
 
-		it('should non-alphanumeric characters in type definitions', function() {
+		it('should handle non-alphanumeric characters in type definitions', function() {
 			function Bar() {}
 
 			function Foo(/** razzle-dazzle! */bar) {
 				this.bar = bar;
 			}
 
-			var bar = new Bar(),
-				foo = new Container()
-					.registerInstance(bar, 'razzle-dazzle!')
-					.registerType(Foo)
-					.resolveSync('Foo');
+			const bar = new Bar();
+			const foo = new Container()
+				.registerInstance(bar, 'razzle-dazzle!')
+				.registerType(Foo)
+				.resolveSync('Foo');
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.be.equal(bar);
@@ -313,11 +311,11 @@ describe('Container', function() {
 				this.bar2 = bar2;
 			}
 
-			var bar = new Bar(),
-				foo = new Container()
-					.registerInstance(bar)
-					.registerType(Foo)
-					.resolveSync('Foo');
+			const bar = new Bar();
+			const foo = new Container()
+				.registerInstance(bar)
+				.registerType(Foo)
+				.resolveSync('Foo');
 
 			foo.should.be.instanceOf(Foo);
 			foo.bar.should.equal(bar);
@@ -329,24 +327,22 @@ describe('Container', function() {
 				this.bar = bar;
 			}
 
-			(function() {
-				new Container().registerType(Foo);
-			}).should.throwError('Unable to determine type of parameter at ' +
-				'position 1 ("bar") for type "Foo"; are you missing a doc comment?');
+			(function() { new Container().registerType(Foo); })
+				.should.throwError('Unable to determine type of parameter at ' +
+					'position 1 ("bar") for type "Foo"; are you missing a doc comment?');
 		});
 
 		it('should detect cyclic dependencies', function() {
 			function Foo(/** Bar */bar) {}
 			function Bar(/** Foo */foo) {}
 
-			(function() {
-				new Container().registerType(Foo).registerType(Bar);
-			}).should.throwError(/^Bar's dependencies create a cycle/);
+			(function() { new Container().registerType(Foo).registerType(Bar); })
+				.should.throwError(/^Bar's dependencies create a cycle/);
 		});
 
 		it('should use lifetime', function() {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -369,7 +365,7 @@ describe('Container', function() {
 
 	describe('injection', function() {
 		it('should perform injection without resolution key', function() {
-			var injection = {
+			const injection = {
 				injectSync: function(instance, container) {
 					instance.injected = true;
 				}
@@ -377,15 +373,15 @@ describe('Container', function() {
 
 			function Foo() {}
 
-			var container = new Container().registerType(Foo, { injections: [ injection ] }),
-				instance = new Foo();
+			const container = new Container().registerType(Foo, { injections: [ injection ] });
+			const instance = new Foo();
 
 			container.injectSync(instance);
 			instance.should.have.property('injected', true);
 		});
 
 		it('should perform injection with resolution key', function() {
-			var injection = {
+			const injection = {
 				injectSync: function(instance, container) {
 					instance.injected = true;
 				}
@@ -393,34 +389,33 @@ describe('Container', function() {
 
 			function Foo() {}
 
-			var container = new Container().registerType(Foo, { key: 'asdf', injections: [ injection ] }),
-				instance = new Foo();
+			const container = new Container().registerType(Foo, { key: 'asdf', injections: [ injection ] });
+			const instance = new Foo();
 
 			container.injectSync(instance, 'asdf');
 			instance.should.have.property('injected', true);
 		});
 
 		it('should throw if key is not registered', function() {
-			(function() {
-				new Container().injectSync({}, 'asdf');
-			}).should.throwError('Nothing with key "asdf" is registered in the container');
+			(function() { new Container().injectSync({}, 'asdf');})
+				.should.throwError('Nothing with key "asdf" is registered in the container');
 		});
 	});
 
 	describe('async', function() {
-		it('should raise error if type is not registered', function() {
-			new Container().resolve('Foo', function(err) {
-				err.should.be.instanceOf(Error);
-				err.should.have.property('message', 'Nothing with key "Foo" is registered in the container');
-			});
-		});
+		it('should raise error if type is not registered', asyncTest(async () => {
+			await shouldReject(
+				new Container().resolve('Foo'),
+				'Nothing with key "Foo" is registered in the container'
+			);
+		}));
 
-		it('should resolve type with dependencies and emit events', function(done) {
+		it('should resolve type with dependencies and emit events', asyncTest(async () => {
 			function Foo(/** Bar */bar) { this.bar = bar; }
 			function Bar() {}
 
-			var container = new Container();
-			var eResolved = 0,
+			const container = new Container();
+			let eResolved = 0,
 				resolving = 0,
 				registering = 0;
 
@@ -438,21 +433,18 @@ describe('Container', function() {
 				.registerType(Foo)
 				.registerType(Bar);
 
-			container.resolve(Foo, function(err, resolved) {
-				should.not.exist(err);
-				resolved.should.be.instanceOf(Foo);
-				resolved.should.have.property('bar');
-				resolved.bar.should.be.instanceOf(Bar);
-				registering.should.equal(2);
-				eResolved.should.equal(2);
-				resolving.should.equal(2);
-				done();
-			});
-		});
+			const resolved = await container.resolve(Foo);
+			resolved.should.be.instanceOf(Foo);
+			resolved.should.have.property('bar');
+			resolved.bar.should.be.instanceOf(Bar);
+			registering.should.equal(2);
+			eResolved.should.equal(2);
+			resolving.should.equal(2);
+		}));
 
-		it('should use lifetime when resolving type', function(done) {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+		it('should use lifetime when resolving type', asyncTest(async () => {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -464,47 +456,41 @@ describe('Container', function() {
 
 			function Foo() {}
 
-			new Container()
-				.registerType(Foo, { key: 'foo', lifetime: lifetime })
-				.resolve('foo', function(err) {
-					should.not.exist(err);
-					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
-					storeCalled.should.equal(true, 'lifetime.store() should have been called');
-					done();
-				});
-		});
+			await new Container().registerType(Foo, { key: 'foo', lifetime: lifetime }).resolve('foo');
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		}));
+
+		it('should not throw if key does not exist for tryResolveSync()', asyncTest(async () => {
+			const resolved = await new Container().tryResolve('foo');
+			should.strictEqual(resolved, undefined);
+		}));
 
 		describe('registration from instance', function() {
-			it('should register and resolve instance', function(done) {
+			it('should register and resolve instance', asyncTest(async () => {
 				function Foo() {}
 
-				var instance = new Foo(),
-					container = new Container().registerInstance(instance);
+				const instance = new Foo();
+				const container = new Container().registerInstance(instance);
 
-				container.resolve(Foo, function(err, resolved) {
-					should.not.exist(err);
-					resolved.should.equal(instance);
-					done();
-				});
-			});
+				const resolved = await container.resolve(Foo);
+				resolved.should.equal(instance);
+			}));
 
-			it('should register and resolve instance with specified key', function(done) {
+			it('should register and resolve instance with specified key', asyncTest(async () => {
 				function Foo() {}
 
-				var instance = new Foo(),
-					container = new Container().registerInstance(instance, 'asdf');
+				const instance = new Foo();
+				const container = new Container().registerInstance(instance, 'asdf');
 
-				container.resolve('asdf', function(err, resolved) {
-					should.not.exist(err);
-					resolved.should.equal(instance);
-					done();
-				});
-			});
+				const resolved = await container.resolve('asdf');
+				resolved.should.equal(instance);
+			}));
 		});
 
-		it('should use lifetime when resolving instance', function(done) {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+		it('should use lifetime when resolving instance', asyncTest(async () => {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -514,48 +500,35 @@ describe('Container', function() {
 				}
 			};
 
-			new Container()
+			await new Container()
 				.registerInstance('foo', { key: 'foo', lifetime: lifetime })
-				.resolve('foo', function(err) {
-					should.not.exist(err);
-					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
-					storeCalled.should.equal(true, 'lifetime.store() should have been called');
-					done();
-				});
-		});
+				.resolve('foo');
+
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		}));
 
 		describe('registration from factory', function() {
-			it('should register and resolve factory', function(done) {
-				var instance = {},
-					container = new Container()
-						.registerFactory(function(container, callback) {
-							callback(null, instance);
-						}, { key: 'poopoo' });
+			it('should register and resolve factory', asyncTest(async () => {
+				const instance = {};
+				const container = new Container()
+					.registerFactory(() => Promise.resolve(instance), { key: 'poopoo' });
 
-				container.resolve('poopoo', function(err, resolved) {
-					should.not.exist(err);
-					resolved.should.equal(instance);
-					done();
-				});
-			});
+				const resolved = await container.resolve('poopoo');
+				resolved.should.equal(instance);
+			}));
 
-			it('should raise error during resolution', function(done) {
-				var container = new Container()
-						.registerFactory(function(container, callback) {
-							callback('fail');
-						}, { key: 'poopoo' });
+			it('should raise error during resolution', asyncTest(async () => {
+				const container = new Container()
+					.registerFactory(() => Promise.reject(new Error('fail')), { key: 'poopoo' });
 
-				container.resolve('poopoo', function(err, resolved) {
-					err.should.equal('fail');
-					should.not.exist(resolved);
-					done();
-				});
-			});
+				await shouldReject(container.resolve('poopoo'), 'fail');
+			}));
 		});
 
-		it('should use lifetime when resolving factory', function(done) {
-			var fetchCalled = false, storeCalled = false;
-			var lifetime = {
+		it('should use lifetime when resolving factory', asyncTest(async () => {
+			let fetchCalled = false, storeCalled = false;
+			const lifetime = {
 				fetch: function() {
 					fetchCalled = true;
 				},
@@ -565,65 +538,53 @@ describe('Container', function() {
 				}
 			};
 
-			var factory = function(container, callback) {
-				callback(null, 'foo');
-			};
-			new Container()
+			const factory = () => Promise.resolve('foo');
+
+			await new Container()
 				.registerFactory(factory, { key: 'foo', lifetime: lifetime })
-				.resolve('foo', function(err) {
-					should.not.exist(err);
-					fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
-					storeCalled.should.equal(true, 'lifetime.store() should have been called');
-					done();
-				});
-		});
+				.resolve('foo');
+
+			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
+			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		}));
 
 		describe('injection', function() {
-			it('should perform injection', function(done) {
-				var injection = {
-					inject: function(instance, container, callback) {
+			it('should perform injection', asyncTest(async () => {
+				const injection = {
+					inject: (instance) => {
 						instance.injected = true;
-						callback();
 					}
 				};
 
 				function Foo() { }
 
-				var container = new Container().registerType(Foo, { injections: [ injection ] }),
-					instance = new Foo();
+				const container = new Container().registerType(Foo, { injections: [ injection ] });
+				const instance = new Foo();
 
-				container.inject(instance, 'Foo', function(err) {
-					should.not.exist(err);
-					instance.should.have.property('injected', true);
-					done();
-				});
-			});
+				await container.inject(instance, 'Foo');
+				instance.should.have.property('injected', true);
+			}));
 
-			it('should raise error', function(done) {
-				var injection = {
-					inject: function(instance, container, callback) {
-						callback('fail');
-					}
+			it('should raise error', asyncTest(async () => {
+				const injection = {
+					inject: () => Promise.reject('fail')
 				};
 
 				function Foo() {}
 
-				var container = new Container().registerType(Foo, { injections: [ injection ] }),
-					instance = new Foo();
+				const container = new Container().registerType(Foo, { injections: [ injection ] });
+				const instance = new Foo();
 
-				container.inject(instance, 'Foo', function(err) {
-					err.should.equal('fail');
-					done();
-				});
-			});
+				await shouldReject(container.inject(instance, 'Foo'), 'fail');
+			}));
 		});
 	});
 
 	describe('child containers', function() {
 		it('should inherit registrations from parent', function() {
 			function Foo() {}
-			var parent = new Container().registerType(Foo),
-				child = parent.createChildContainer();
+			const parent = new Container().registerType(Foo);
+			const child = parent.createChildContainer();
 
 			child.resolveSync(Foo).should.be.instanceOf(Foo);
 
@@ -636,8 +597,8 @@ describe('Container', function() {
 		it('should not affect parent container\'s registrations', function() {
 			function Foo() {}
 
-			var parent = new Container().registerType(Foo),
-				child = parent.createChildContainer();
+			const parent = new Container().registerType(Foo);
+			const child = parent.createChildContainer();
 
 			child.resolveSync(Foo).should.be.instanceOf(Foo);
 
@@ -651,8 +612,8 @@ describe('Container', function() {
 			function Bar(/** Baz */bar) {}
 			function Baz(/** Bar */baz) {}
 
-			var parent = new Container().registerType(Bar),
-				child = parent.createChildContainer();
+			const parent = new Container().registerType(Bar);
+			const child = parent.createChildContainer();
 
 			(function() { child.registerType(Baz); })
 				.should.throwError(/^Baz's dependencies create a cycle/);
@@ -662,23 +623,22 @@ describe('Container', function() {
 			function Bar(/** Baz */baz) {}
 			function Baz() {}
 
-			var parent = new Container().registerType(Bar),
-				child = parent.createChildContainer()
-					.registerType(Baz);
+			const parent = new Container().registerType(Bar);
+			parent.createChildContainer().registerType(Baz);
 
 			(function() { parent.resolveSync(Bar); })
 				.should.throwError(/^Nothing with key "Baz" is registered in the container/);
 		});
 
 		it('should set parent', function() {
-			var parent = new Container();
+			const parent = new Container();
 			parent.createChildContainer().parent.should.equal(parent);
 		});
 
 		it('should inherit events from parent', function() {
 			function Foo() {}
-			var parent = new Container().registerType(Foo);
-			var resolving = 0,
+			const parent = new Container().registerType(Foo);
+			let resolving = 0,
 				building = 0;
 
 			parent.on('resolving', function() {
@@ -688,7 +648,7 @@ describe('Container', function() {
 				building++;
 			});
 
-			var child = parent.createChildContainer();
+			let child = parent.createChildContainer();
 
 			child.resolveSync(Foo);
 			resolving.should.equal(0);

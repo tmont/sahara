@@ -1,4 +1,3 @@
-const async = require('./async');
 const EventEmitter = require('./event-emitter');
 
 function getParams(typeInfo) {
@@ -21,35 +20,39 @@ class ObjectBuilder extends EventEmitter {
 		this.resolverSync = resolverSync;
 	}
 
-	invokeCtor(ctor, handlerConfigs, args) {
-		return new (Function.prototype.bind.apply(ctor, [null].concat(args)))();
+	invokeCtor(ctor, args) {
+		return new ctor(...args);
 	}
 
-	newInstanceSync(typeInfo, handlerConfigs, context) {
+	newInstanceSync(typeInfo, context) {
 		this.emit('building', typeInfo);
-		const args = getParams(typeInfo).map(function(typeData) {
+		const args = getParams(typeInfo).map((typeData) => {
 			return this.resolverSync(typeData.type, context);
-		}.bind(this));
+		});
 
-		const instance = this.invokeCtor(typeInfo.ctor, handlerConfigs, args);
+		const instance = this.invokeCtor(typeInfo.ctor, args);
 		this.emit('built', typeInfo, instance);
 		return instance;
 	}
 
-	newInstance(typeInfo, handlerConfigs, context, callback) {
+	async newInstance(typeInfo, context) {
 		this.emit('building', typeInfo);
-		async.mapSeries(getParams(typeInfo), (typeData, next) => {
-			this.resolver(typeData.type, context, next);
-		}, (err, args) => {
-			if (err) {
-				callback(err);
-				return;
-			}
 
-			const instance = this.invokeCtor(typeInfo.ctor, handlerConfigs, args);
+		const args = [];
+		const params = getParams(typeInfo);
+
+		// NOTE: these must be resolved in order
+		for (const param of params) {
+			args.push(await this.resolver(param.type, context));
+		}
+
+		try {
+			const instance = this.invokeCtor(typeInfo.ctor, args);
 			this.emit('built', typeInfo, instance);
-			callback(null, instance);
-		});
+			return instance;
+		} catch (e) {
+			return Promise.reject(e);
+		}
 	}
 }
 

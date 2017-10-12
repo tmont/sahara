@@ -46,7 +46,7 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 	};
 
 	if (!ignoreSignature && signature) {
-		signature.split(',').forEach(function(param, i) {
+		signature.split(',').forEach((param, i) => {
 			const paramTrimmed = param.trim();
 			//ferret out the type of each argument based on inline jsdoc:
 			//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs

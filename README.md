@@ -4,8 +4,7 @@
 
 Sahara is an inversion of control container. It supports constructor,
 property and method injection, parsing the method signature automatically
-to determine dependencies. It also supports interception for function
-calls.
+to determine dependencies.
 
 ## Topics
 * [Installation](#installation)
@@ -32,7 +31,7 @@ calls.
 
 
 ## Installation
-Install using [NPM](https://github.com/isaacs/npm): `npm install sahara`
+Install using NPM: `npm install sahara`
 
 **As of v5.0.0, there is no support for Node < v8.0.0. Use v4.x for node v0.10-v7**
 
@@ -42,51 +41,43 @@ interception.
 
 As of v3.0.0 there is support for ES6 features such as classes and fat-arrow functions.
 
-### Client
-Include `dist/sahara.js` in your HTML, and access sahara through the global
-`window.sahara` variable. Note that interception is not included in the
-client-side build.
-
 ## Usage
 ### API
 All of these are explained in mind-numbing detail below.
 
 ```javascript
-sahara.Container = function() {};
-Container.prototype = {
-	registerType: function(ctor[, options]) {},
-	registerType: function(ctor[, key, lifetime, injection, injection...]) {},
+class Container {
+	registerType(ctor[, options]) {}
+	registerType(ctor[, key, lifetime, injection, injection...]) {}
 
-	registerInstance: function(instance[, options]) {},
-	registerInstance: function(instance[, key, lifetime, injection, injection...]) {},
+	registerInstance(instance[, options]) {}
+	registerInstance(instance[, key, lifetime, injection, injection...]) {}
 
-	registerFactory: (factory[, options]) {},
-	registerFactory: (factory[, key, lifetime, injection, injection...]) {},
+	registerFactory(factory[, options]) {}
+	registerFactory(factory[, key, lifetime, injection, injection...]) {}
 
-	isRegistered: function(key) {},
+	isRegistered(key) {}
 
-	resolve: function(key, callback) {}
-	resolveSync: function(key) {},
-	tryResolveSync: function(key) {},
+	resolve(key) {}
+	resolveSync(key) {}
+	tryResolveSync(key) {}
 
-	inject: function(instance, key, callback) {}
-	injectSync: function(instance[, key]) {},
+	inject(instance[, key]) {}
+	injectSync(instance[, key]) {}
 
-	intercept: function(matcher, callHandler[, callHandler...]) {},
-
-	createChildContainer: function() {}
-};
+	createChildContainer() {}
+}
 
 sahara.inject = {
-	property: function(name, key) {},
-	propertyValue: function(name, value) {},
-	method: function(name, args) {}
+	property: (name, key) => {},
+	propertyValue: (name, value) => {},
+	method: (name, args) => {}
 };
 
 sahara.lifetime = {
-	transient: function() {},
-	memory: function() {},
-	external: function(manager) {}
+	transient: () => {},
+	memory: () => {},
+	external: (manager) => {}
 };
 ```
 
@@ -95,7 +86,7 @@ pass an `options` object, or you can specify everything explicitly in the
 arguments. So these are equivalent:
 
 ```javascript
-var options = {
+const options = {
 	key: 'foo',
 	lifetime: lifetime.memory(),
 	injections: [ inject.property('foo', 'bar'), inject.method('doStuff', [ 'arg1', 'arg2' ]) ]
@@ -108,15 +99,15 @@ container.registerInstance({}, options.key, options.lifetime, options.injections
 ### Registering an instance
 Sahara is simply a container for objects and object dependencies. In the simplest
 case, you shove an object into it using `registerInstance()` and retrieve it
-using `resolveSync()` (or, asynchronously, `resolve()`):
+using `resolveSync()` (or, asynchronously using `Promise`s with `resolve()`):
 
 ```javascript
-var Container = require('sahara').Container,
-	container = new Container();
+const Container = require('sahara').Container;
+const container = new Container();
 
-var myObject = { oh: 'hi mark' };
+const myObject = { oh: 'hi mark' };
 container.registerInstance(myObject, 'MyObject');
-var instance = container.resolveSync('MyObject');
+const instance = container.resolveSync('MyObject');
 console.log(myObject === instance); //true, they are literally the same instance
 ```
 
@@ -131,7 +122,7 @@ function AnotherObject(/** MyObject */theObject) {
 
 container.registerType(AnotherObject);
 
-var anotherObject = container.resolveSync(AnotherObject);
+const anotherObject = container.resolveSync(AnotherObject);
 console.log(anotherObject.obj); // { oh: 'hai mark' }
 ```
 
@@ -163,11 +154,11 @@ container
 	.bar.foo.message; //"oh hi mark"
 ```
 
-**NOTE**: When using `registerType`, you *MUST* register a function that
+**NOTE**: When using `registerType`, you *MUST* register a class or a function that
 is a constructor.
 
 #### Named functions
-By default, Sahara will use the name of the constructor as the resolution key.
+By default, Sahara will use the name of the class or constructor as the resolution key.
 As a means of convenience (as you can see by most of the examples on this page),
 you can also pass the constructor to the `resolveSync()` function instead of
 the resolution key.
@@ -199,7 +190,7 @@ get the resolution key.
 ```javascript
 function Foo() {}
 
-var instance = new Foo();
+const instance = new Foo();
 
 //the following registrations are equivalent
 container.registerInstance(instance)
@@ -212,13 +203,13 @@ If you don't have a named function, you can also register an anonymous
 function, but you *must* provide a resolution key for it:
 
 ```javascript
-var foo = function() {};
+const foo = function() {};
 container.registerType(foo, 'MySpecialName');
-var fooInstance = container.resolveSync('MySpecialName');
+const fooInstance = container.resolveSync('MySpecialName');
 
 //with an instance
 container.registerInstance(fooInstance, 'AnotherSpecialName');
-var sameInstance = container.resolveSync('AnotherSpecialName');
+const sameInstance = container.resolveSync('AnotherSpecialName');
 ```
 
 #### Classes
@@ -248,9 +239,7 @@ Note that the `key` option is **required** when using `registerFactory()`.
 ```javascript
 function Foo() {}
 
-container.registerFactory(function(container) {
-	return new Foo();
-}, 'MyKey');
+container.registerFactory(container => new Foo(), 'MyKey');
 
 container.resolveSync('MyKey');
 ```
@@ -269,8 +258,10 @@ console.log(container.isRegistered('bar')); //false
 ```
 
 ### Asynchronous resolution
+**Note: as of v5.0.0 sahara now uses `Promise`s instead of callbacks**
+
 All examples given are synchronous. However, if you need to resolve something
-asynchronously, you can use the `resolve(key, callback)` function. Note that
+asynchronously, you can use the `resolve(key)` function. Note that
 *everything* (from resolution, to injection, to object building) will be
 asynchronous, so bear that in mind.
 
@@ -280,44 +271,21 @@ and synchronous code paths.
 
 Here is an asynchronous example:
 ```javascript
-function createThingAsync(container, callback) {
-	setTimeout(function() {
-		callback(null, {});
-	}, 1000);
+function createThingAsync(container) {
+	return new Promise(resolve => setTimeout(() => resolve({}), 1000));
 }
 
-new Container()
-	.registerFactory(createThingAsync, 'Thing')
-	.resolve('Thing', function(err, thing) {
-		if (err) {
-			console.error(err);
-			return;
-		}
+const container = new Container()
+	.registerFactory(createThingAsync, 'Thing');
 
-		//do something with thing
-	});
+container.resolve('Thing')
+	.then((thing) => { /* ... */ })
+	.catch((err) => console.error(err));
 ```
 
-But if you try to resolve `Thing` synchronously, nothing will be returned.
-If you need that flexibility, you'll have to account for both cases in
-your factory function:
-
-```javascript
-function createThingMaybeAsync(container, callback) {
-	var theThing = { oh: 'hi mark' };
-	if (callback) {
-		//asynchronous code path
-		callback(null, theThing);
-		return;
-	}
-
-	//synchronous code path
-	return theThing;
-}
-```
-
-It's best to not mix the idioms, though, since some things just can't be
-done synchronously.
+Note that if you try to resolve `Thing` synchronously, a promise is still returned.
+This behavior was changed in v5.0.0; previously it would return `undefined` unless
+explicitly handled.
 
 ### Cyclic dependencies
 ...are bad.
@@ -326,7 +294,7 @@ done synchronously.
 function Foo(/** Bar */bar) {}
 function Bar(/** Foo */foo) {}
 
-container.registerType(Foo); //throws "Cyclic dependency from Foo to Bar"
+new Container().registerType(Foo); //throws "Cyclic dependency from Foo to Bar"
 ```
 
 ### Lifetime management
@@ -346,10 +314,10 @@ with an expensive construction time (e.g. a database connection) that
 you would want to reuse for the duration of your script.
 
 ```javascript
-var lifetime = require('sahara').lifetime;
+const lifetime = require('sahara').lifetime;
 
 function DbConnection() {
-	this.client = mysql.connect({...});
+	this.client = db.connect({...});
 }
 
 container.registerType(DbConnection, { lifetime: lifetime.memory() });
@@ -374,7 +342,7 @@ There are two ways to do it. You can simply give the value of the
 property:
 
 ```javascript
-var inject = sahara.inject;
+const inject = sahara.inject;
 
 function Foo() {
 	this.value = 'foo';
@@ -424,13 +392,14 @@ accomplish this, simply omit the optional array of arguments to
 types of each parameter with a comment.
 
 ```javascript
-function Foo() {
-	this.value = 'foo';
-	this.setValue = function(/** TheNewValue */newValue) {
-		this.value = newValue;
-	};
+class Foo {
+	constructor() {
+		this.value = 'foo';
+		this.setValue = (/** TheNewValue */newValue) => {
+			this.value = newValue;
+		};
+	}
 }
-
 container
 	.registerType(Foo, { injections: [ inject.method('setValue') ] })
 	.registerInstance('This is the new value', 'TheNewValue');
@@ -443,13 +412,15 @@ already existing object. This can be useful if an object was created
 without using the container.
 
 ```javascript
-function Foo() {
-	this.value = 'foo';
+class Foo {
+	constructor() {
+		this.value = 'foo';
+	}
 }
 
 container.registerType(Foo, { injections: [ inject.propertyValue('value', 'bar') ] });
 
-var instance = new Foo();
+const instance = new Foo();
 console.log(instance.value); //"foo"
 container.injectSync(instance);
 console.log(instance.value); //"bar"
@@ -460,281 +431,18 @@ container.injectSync(instance, 'Foo');
 
 The async way:
 ```javascript
-container.inject(instance, 'Foo', function(err) {
-	if (err) {
+container.inject(instance, 'Foo')
+	.then(() => {
+		//injection completed successfully
+	})
+	.catch((err) => {
 		console.error(err);
-	}
-
-	//injection completed successfully
-});
+	});
 ```
 
 ### Interception
-Interception is a means of intercepting a function call and doing something
-before or after. For example, you could modify the return value, nullify
-an error, perform extra logging, etc.
-
-The default `Container` does not include interception capabilities, you must
-use `sahara.interception.Container` instead.
-
-### Limitations
-Interception in JavaScript is accomplished by defining a non-writable property
-that wraps a function call. So, if your method is
-[not configurable](https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Object/getOwnPropertyDescriptor#Description)
-then it will *not* be intercepted.
-
-Note that currently only [types](#registering-a-type) can be intercepted. This
-may be expanded to other registrations in the future.
-
-### Usage
-There are three components to configuring registration:
-
-1. Define a matcher predicate, which will determine when a function
-   call should be intercepted
-1. Define a call handler, which will be executed when the function
-   is called
-1. Call `container.intercept()`
-	* `container.intercept().sync()` for synchronous interception
-	* `container.intercept().async()` for asynchronous interception
-
-**NOTE**: interception is configured internally during object construction,
-which occurs when you call `resolve()` or `resolveSync()`. So make sure
-interception has been configured *prior* to resolving the type.
-
-You should also make use of the [memory lifetime](#lifetime-management) where
-appropriate, as determining when a function should be intercepted can add a bit
-of time to the creation of the object. If the memory lifetime is used, that
-performance hit will only occur once.
-
-#### Matchers
-The matcher predicate is a function that takes in two arguments:
-
-1. `instance` - the object instance
-1. `methodName` - the name of the method that is being invoked
-
-If the matcher returns `true`, then the method will be intercepted.
-
-```javascript
-//intercept every possible function
-function always() {
-	return true;
-}
-
-//only intercept the validate() method
-function onlyValidate(instance, methodName) {
-	return methodName === 'validate';
-}
-
-//only intercept validate() on the UserRepository
-function conditionalValidate(instance, methodName) {
-	return instance instanceof UserRepository && methodName === 'validate';
-}
-```
-
-#### Call handlers
-The call handler is invoked when the intercepted function is called.
-It is a function that takes two arguments:
-
-1. `context` - An object representing the current state of the invocation
-	* `context.instance` - the object instance
-	* `context.methodName` - the name of the method being invoked
-	* `context.arguments` - an array of arguments passed to the method
-	* `context.error` - the error that was raised during invocation
-	* `context.returnValue` - the value to be returned by the method
-1. `next` - Invoke the next handler in the chain
-
-You **MUST** call `next()` *once and only once* somewhere in your call handler,
-to make sure the handler chain completes. If you have multiple call handlers
-defined, it will invoke the next one. Otherwise, it will invoke the original
-method. However, if `context.error` is set, then the original method will *not*
-be invoked.
-
-```javascript
-//log the signature of the method and return value
-function logMethodCalls(context, next) {
-	var message = context.instance.constructor.name + '.' + context.methodName + '(' +
-		context.arguments.map(function(arg) { return arg.toString(); }).join(',') + ')';
-
-	console.log(message);
-	next();
-	console.log(message + ': ' + (context.error || context.returnValue));
-}
-
-//modify the return value
-function ohHiMark(context, next) {
-	next();
-	context.returnValue = 'oh hi mark';
-}
-
-//force an error
-function alwaysErrors(context, next) {
-	next();
-	context.error = new Error('NOPE.');
-}
-
-//nullify an error
-function noErrors(context, next) {
-	next();
-	context.error = null;
-}
-
-//modify function arguments
-function addFoo(context, next) {
-	context.arguments[0] = 'foo';
-	next();
-}
-```
-
-### Putting it all together
-```javascript
-function Foo() {
-	this.bar = function(message) {
-		console.log(message);
-	};
-}
-
-function matchBar(instance, methodName) {
-	return methodName === 'bar';
-}
-
-var container = new sahara.interception.Container()
-	.registerType(Foo)
-	.intercept(matchBar, logMethodCalls, addFoo).sync();
-
-var foo = container.resolveSync(Foo);
-foo.bar();
-```
-
-### Signature shortcuts
-The `matcher` argument accepts other things besides a function.
-
-* If you give it a string, it will only intercept methods with that name
-* If you give it an array, the `matcher[0]` is the type, and `matcher[1]` is
-  the method name (`matcher[1]` is optional)
-* If you give it something that's not a function, array or string, it will
-  convert it to a boolean, and either match everything or nothing.
-	* truthy values (`!!value === true`) match everything
-	* falsey values (`!!value === false`) match nothing
-
-So the example above could be configured more easily:
-```javascript
-container = new sahara.interception.Container()
-	.registerType(Foo)
-	.intercept('bar', logMethodCalls, addFoo).sync();
-```
-
-Or even better:
-```javascript
-container = new sahara.interception.Container()
-	.registerType(Foo)
-	.intercept([ Foo, 'bar' ], logMethodCalls, addFoo).sync();
-```
-
-### Asynchronous interception
-All you've seen so far is synchronous interception. Asynchronous interception
-is a little tricky. Since Sahara simply wraps the original function call,
-it needs to assume some things for async functions:
-
-1. The last argument is the callback
-1. The callback uses the standard node convention: `callback(err, returnValue)`
-
-Sahara will try to gracefully handle situations where the callback is not
-given, or optional arguments are omitted. If you're not doing anything too
-weird, you should be perfectly fine. So even if you have a function
-defined like this that has a variable arity, Sahara will still do the right thing:
-
-```javascript
-function(options, callback) {
-	if (typeof(options) === 'function') {
-		callback = options;
-		options = {};
-	}
-	if (!callback) {
-		callback = arguments[arguments.length - 1];
-	}
-
-	//do stuff
-	callback(err, result);
-}
-```
-
-Your call handler may also change slightly. If you want to do something
-after calling `next()`, you can pass an optional callback to `next()`. So our
-logging call handler from above becomes:
-
-```javascript
-function logMethodCallsAsync(context, next) {
-	var message = context.instance.constructor.name + '.' + context.methodName + '(' +
-        context.arguments.map(function(arg) { return arg.toString(); }).join(',') + ')';
-
-    console.log(message);
-    next(function(done) {
-        console.log(message + ': ' + (context.error || context.returnValue));
-        done(); // <-- this is important!
-    });
-}
-```
-
-If you don't need to do anything after the function is executed, simply call
-`next()` with no arguments.
-
-```javascript
-var count = 0;
-function incrementCounter(context, next) {
-	count++;
-	next();
-}
-```
-
-And finally, when configuring interception, use the `.async()` chain:
-
-```javascript
-function Foo() {
-	this.bar = function(message, callback) {
-		console.log(message);
-		callback();
-	};
-}
-
-var container = new sahara.interception.Container()
-	.registerType(Foo)
-	.intercept(Foo, matchBar, logMethodCallsAsync).async();
-
-//note that aysnc interception is only for asynchronous methods.
-//so you can still resolve synchronously and intercept asynchronously.
-
-container.resolveSync(Foo).bar('hello world', function(err, result) {
-	//...
-});
-```
-
-It's important to note that matchers are applied to all registrations, so
-keep that in mind when mixing async and sync registrations. Sahara will ensure
-that only async call handlers or only sync call handlers will be used per
-function call, but since it doesn't know if the function itself is async,
-it'll simply assume that the first match determines whether it's asynchronous
-or not.
-
-For example, don't do this:
-
-```javascript
-function Foo() {
-	this.bar = function() {};
-}
-
-function asyncHandler(context, next) {
-	next(function() {
-		console.log('yay!');
-	});
-}
-
-var container = new sahara.interception.Container()
-	.registerType(Foo)
-	.intercept('bar', asyncCallHandler).async();
-
-//synchronous call is going to use an async handler
-container.resolve(Foo).bar();
-```
+Interception was removed as of v5.0.0. View one of the older releases' README
+for documentation.
 
 ### Creating child containers
 Occasionally the need arises to create a new container that inherits all of the
@@ -742,12 +450,11 @@ configurations from another container. This can be accomplished with the
 `createChildContainer()` function.
 
 ```javascript
-function Foo() {}
+class Foo {}
 
-var parent = new Container().registerType(Foo),
-	child = parent.createChildContainer();
-
-var fooInstance = child.resolveSync(Foo); // instance of Foo
+const parent = new Container().registerType(Foo);
+const child = parent.createChildContainer();
+const fooInstance = child.resolveSync(Foo); // instance of Foo
 ```
 
 Anything you do on the parent container will **not** affect the state of the
@@ -779,26 +486,20 @@ Events emitted by an `ObjectBuilder` instance:
 - `built` - when an object has been built
   1. `arguments[0]`: metadata for the type (see above)
   2. `arguments[1]`: the object instance
-- `intercepting` - when a method is being intercepted
-  1. `arguments[0]`: the object instance
-  2. `arguments[1]`: the name of the method being intercepted
 
 **Example**:
 
 ```javascript
-var container = new Container();
+const container = new Container();
 
 container
-	.on('registering', function(key) { console.log(key + ' is being registered'); })
-	.on('resolving', function(key) { console.log(key + ' is being resolved'); })
-	.on('resolved', function(key) { console.log(key + ' has been resolved'); });
+	.on('registering', key => console.log(key + ' is being registered'))
+	.on('resolving', key => console.log(key + ' is being resolved'))
+	.on('resolved', key => console.log(key + ' has been resolved'));
 
 container.builder
-	.on('building', function(info) { console.log('building ' + info.name); })
-	.on('built', function(info) { console.log('built ' + info.name); })
-	.on('intercepting', function(instance, methodName) {
-		console.log('intercepting ' + instance.constructor.name + '.' + methodName);
-	});
+	.on('building', info => console.log('building ' + info.name))
+	.on('built', info => console.log('built ' + info.name));
 ```
 
 ## Development

@@ -1,7 +1,6 @@
-'use strict';
-var should = require('should'),
-	sahara = require('../../'),
-	Container = sahara.Container;
+const should = require('should');
+const sahara = require('../../');
+const Container = sahara.Container;
 
 describe('Classes', function() {
 	it('should parse class constructor', function() {
@@ -12,11 +11,11 @@ describe('Classes', function() {
 			}
 		}
 
-		var bar = new Bar(),
-			foo = new Container()
-				.registerInstance(bar, 'Bar')
-				.registerType(Foo)
-				.resolveSync('Foo');
+		const bar = new Bar();
+		const foo = new Container()
+			.registerInstance(bar, 'Bar')
+			.registerType(Foo)
+			.resolveSync('Foo');
 
 		foo.should.be.instanceOf(Foo);
 		foo.bar.should.equal(bar);
@@ -25,7 +24,7 @@ describe('Classes', function() {
 	it('should parse class without a constructor', function() {
 		class Bar {}
 
-		var bar = new Container()
+		const bar = new Container()
 			.registerType(Bar)
 			.resolveSync(Bar);
 
@@ -43,7 +42,7 @@ describe('Classes', function() {
 			}
 		}
 
-		var foo = new Container()
+		const foo = new Container()
 			.registerType(Foo, {
 				injections: [
 					sahara.inject.method('bar')

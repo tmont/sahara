@@ -1,16 +1,15 @@
 const Graph = require('tarjan-graph');
 const ObjectBuilder = require('./object-builder');
 const lifetimes = require('./lifetime');
-const async = require('./async');
 const EventEmitter = require('./event-emitter');
 const utils = require('./util');
 
 function createUnregisteredError(key, context) {
-	let message = 'Nothing with key "' + key + '" is registered in the container';
+	let message = `Nothing with key "${key}" is registered in the container`;
 	if (context && context.history.length) {
 		message += '; error occurred while resolving ';
 		message += context.history.concat([{ name: key }])
-			.map((registration) => `"${registration.name}"`)
+			.map(registration => `"${registration.name}"`)
 			.join(' -> ');
 	}
 
@@ -89,13 +88,8 @@ class Container extends EventEmitter {
 		super();
 		this.parent = parent || null;
 		this.registrations = {};
-		this.handlerConfigs = [];
 		this.graph = new Graph();
-		this.builder = new ObjectBuilder(
-			this.resolve.bind(this),
-			this.resolveSync.bind(this)
-		);
-
+		this.builder = new ObjectBuilder(this.resolve.bind(this), this.resolveSync.bind(this));
 		this.registerInstance(this);
 	}
 
@@ -125,7 +119,7 @@ class Container extends EventEmitter {
 		try {
 			this.graph.addAndVerify(typeName, typeInfo.args.map(info => info.type));
 		} catch (e) {
-			throw new Error(typeName + '\'s dependencies create a cycle: ' + e.message);
+			throw new Error(`${typeName}'s dependencies create a cycle: ${e.message}`);
 		}
 
 		return this;
@@ -197,68 +191,6 @@ class Container extends EventEmitter {
 	}
 
 	/**
-	 * Resolves a type to an instance
-	 *
-	 * @param {String|Function} key The resolution key or constructor to resolve
-	 * @param {Object} [context]
-	 * @param {Function} callback
-	 */
-	resolve(key, context, callback) {
-		if (typeof(key) === 'function') {
-			key = getKeyFromCtor(key);
-		}
-
-		if (typeof(context) === 'function') {
-			callback = context;
-			context = null;
-		}
-
-		context = context || createResolverContext();
-
-		this.emit('resolving', key);
-		const registration = this.registrations[key];
-		if (!registration) {
-			callback(createUnregisteredError(key, context));
-			return;
-		}
-
-		context.history.push(registration);
-
-		const existing = registration.lifetime.fetch();
-		if (existing) {
-			this.emit('resolved', key, existing);
-			callback(null, existing);
-			return;
-		}
-
-		const injectAndReturn = (err, instance) => {
-			if (err) {
-				callback(err);
-				return;
-			}
-
-			context.history.pop();
-
-			this.inject(instance, key, (err) => {
-				if (!err) {
-					registration.lifetime.store(instance);
-				}
-
-				this.emit('resolved', key, instance);
-				callback(err, instance);
-			});
-		};
-
-		if (registration instanceof InstanceRegistration) {
-			injectAndReturn(null, registration.instance);
-		} else if (registration instanceof TypeRegistration) {
-			this.builder.newInstance(registration.typeInfo, this.handlerConfigs, context, injectAndReturn);
-		} else if (registration instanceof FactoryRegistration) {
-			registration.factory(this, injectAndReturn);
-		}
-	}
-
-	/**
 	 * Resolve a type to an instance synchronously
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
@@ -289,7 +221,7 @@ class Container extends EventEmitter {
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
-			instance = this.builder.newInstanceSync(registration.typeInfo, this.handlerConfigs, context);
+			instance = this.builder.newInstanceSync(registration.typeInfo, context);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		}
@@ -300,6 +232,67 @@ class Container extends EventEmitter {
 		registration.lifetime.store(instance);
 		this.emit('resolved', key, instance);
 		return instance;
+	}
+
+	/**
+	 * Resolve a type to an instance asynchronously
+	 *
+	 * @param {String|Function} key The resolution key or constructor to resolve
+	 * @param {Object} [context] Resolver context used internally
+	 * @return {Promise} The resolved object
+	 */
+	async resolve(key, context) {
+		if (typeof(key) === 'function') {
+			key = getKeyFromCtor(key);
+		}
+		context = context || createResolverContext();
+
+		const registration = this.registrations[key];
+		this.emit('resolving', key);
+		if (!registration) {
+			return Promise.reject(createUnregisteredError(key, context));
+		}
+
+		context.history.push(registration);
+
+		const existing = registration.lifetime.fetch();
+		if (existing) {
+			this.emit('resolved', key, existing);
+			return existing;
+		}
+
+		try {
+			let instance;
+			if (registration instanceof InstanceRegistration) {
+				instance = registration.instance;
+			} else if (registration instanceof TypeRegistration) {
+				instance = await this.builder.newInstance(registration.typeInfo, context);
+			} else if (registration instanceof FactoryRegistration) {
+				instance = await registration.factory(this);
+			}
+
+			context.history.pop();
+
+			await this.inject(instance, key);
+			registration.lifetime.store(instance);
+			this.emit('resolved', key, instance);
+			return instance;
+		} catch (e) {
+			return Promise.reject(e)
+		}
+	}
+
+	/**
+	 * Same as resolve(), but won't ever reject
+	 * @param key
+	 * @return {Promise} The resolved object, or undefined if the key doesn't exist
+	 */
+	async tryResolve(key) {
+		try {
+			return await this.resolve(key);
+		} catch (e) {
+			return undefined;
+		}
 	}
 
 	/**
@@ -316,23 +309,20 @@ class Container extends EventEmitter {
 	}
 
 	/**
-	 * Performs injection on an object
+	 * Performs injection on an object asynchronously
 	 *
 	 * @param {*} instance The object to perform injection on
-	 * @param {String} key The resolution key; defaults to instance.constructor.name
-	 * @param {Function} callback
+	 * @param {String} [key] The resolution key; defaults to instance.constructor.name
+	 * @returns {Promise}
 	 */
-	inject(instance, key, callback) {
+	async inject(instance, key) {
 		key = key || getKeyFromInstance(instance);
 		const registration = this.registrations[key];
 		if (!registration) {
-			callback(createUnregisteredError(key));
-			return;
+			return Promise.reject(createUnregisteredError(key));
 		}
 
-		async.each(registration.injections, (injection, next) => {
-			injection.inject(instance, this, next);
-		}, callback);
+		return Promise.all(registration.injections.map(injection => injection.inject(instance, this)));
 	}
 
 	/**
@@ -348,7 +338,7 @@ class Container extends EventEmitter {
 			throw createUnregisteredError(key);
 		}
 
-		registration.injections.forEach((injection) => {
+		registration.injections.map((injection) => {
 			injection.injectSync(instance, this);
 		});
 	}
@@ -356,7 +346,7 @@ class Container extends EventEmitter {
 	/**
 	 * Creates a clone of the container in its current state
 	 *
-	 * @param {Boolean} withEvents
+	 * @param {Boolean} [withEvents]
 	 * @returns {Container}
 	 */
 	createChildContainer(withEvents) {
@@ -367,10 +357,6 @@ class Container extends EventEmitter {
 		});
 
 		childContainer.graph = this.graph.clone();
-
-		this.handlerConfigs.forEach(function(config) {
-			childContainer.handlerConfigs.push(config);
-		});
 
 		if (withEvents) {
 			[ 'registering', 'resolving', 'resolved' ].forEach((event) => {
