@@ -3,6 +3,7 @@ const lifetime = require('./lifetime');
 
 module.exports = {
 	Container: require('./container'),
+	ObjectBuilder: require('./object-builder'),
 	inject: {
 		propertyValue: (name, value) => new injection.PropertyValue(name, value),
 		property: (name, key) => new injection.Property(name, key),

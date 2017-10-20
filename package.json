@@ -13,7 +13,8 @@
 	"license": "MIT",
 	"files": [
 		"src",
-		"index.js"
+		"index.js",
+		"index.d.ts"
 	],
 	"author": "Tommy Montgomery <tmont@tmont.com> (http://tmont.com/)",
 	"repository": {
@@ -25,9 +26,13 @@
 	},
 	"devDependencies": {
 		"mocha": "4.0.1",
-		"should": "13.1.2"
+		"should": "13.1.2",
+		"typescript": "2.5.3"
 	},
 	"scripts": {
-		"test": "./node_modules/.bin/mocha -R dot --recursive tests"
-	}
+		"test": "./node_modules/.bin/mocha -R dot --recursive tests",
+		"lint": "./node_modules/.bin/tsc",
+		"ci": "npm run lint && npm run test"
+	},
+	"typings": "./index.d.ts"
 }

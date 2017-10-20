@@ -365,7 +365,7 @@ class Container extends EventEmitter {
 				});
 			});
 
-			[ 'building', 'built', 'intercepting' ].forEach((event) => {
+			[ 'building', 'built' ].forEach((event) => {
 				this.builder.listeners(event).forEach((listener) => {
 					childContainer.builder.on(event, listener);
 				});

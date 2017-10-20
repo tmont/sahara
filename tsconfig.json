@@ -1,0 +1,12 @@
+{
+	"compilerOptions": {
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"strictNullChecks": true,
+		"noEmit": true
+	},
+	"files": [
+		"tests/ts/test.ts",
+		"index.d.ts"
+	]
+}
