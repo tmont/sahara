@@ -1,3 +1,5 @@
+import { Graph } from 'tarjan-graph';
+
 type RequiredKeyRegistrationOptions<T> = Partial<RegistrationOptions<T>> & Pick<RegistrationOptions<T>, 'key'>
 type Factory<T> = (container: Container) => T | Promise<T>;
 type ResolutionKey<T = {}> = string | { new(): T };
@@ -42,6 +44,8 @@ declare class EventEmitter {
 declare class Container extends EventEmitter {
 	readonly parent: Container | null;
 	readonly builder: ObjectBuilder;
+	readonly graph: Graph;
+	readonly registrations: { [key: string]: Registration<any> };
 
 	constructor(parent?: Container);
 
