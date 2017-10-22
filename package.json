@@ -22,7 +22,7 @@
 		"url": "https://github.com/tmont/sahara.git"
 	},
 	"dependencies": {
-		"tarjan-graph": "0.3.0"
+		"tarjan-graph": "1.0.0"
 	},
 	"devDependencies": {
 		"mocha": "4.0.1",
