@@ -33,7 +33,8 @@ to determine dependencies.
 ## Installation
 Install using NPM: `npm install sahara`
 
-**As of v5.0.0, there is no support for Node < v8.0.0. Use v4.x for node v0.10-v7**
+**As of v5.0.0, there is no support for Node < v8.0.0. Use v4.x for node v0.10-v7.
+In addition, all asynchronous calls are Promise-based rather than callback-based.**
 
 As of v4.0.0, [interception](#interception) as been moved out of the
 default container. Use `require('sahara').interception.Container` to utilize
