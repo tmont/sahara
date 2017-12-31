@@ -17,6 +17,12 @@ class Foo {
 	}
 }
 
+class MultipleArgConstructor {
+	constructor(foo: any, bar: any, baz: any) {}
+
+	public yargs: string = 'yello';
+}
+
 class NotFoo {
 	___yarp: string
 }
@@ -71,6 +77,9 @@ transientLifetime.fetch();
 container.registerType(Foo, 'foo');
 container.resolve(Foo)
 	.then(foo => foo.bar);
+
+container.registerType(MultipleArgConstructor, 'yargs');
+console.log(container.resolveSync<MultipleArgConstructor>('yargs').yargs === 'yello');
 
 container.registerInstance(new Foo());
 container.resolveSync(Foo).myMethod(1, 2);

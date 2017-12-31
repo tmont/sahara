@@ -49,8 +49,8 @@ declare class Container extends EventEmitter {
 
 	constructor(parent?: Container);
 
-	registerType<T>(ctor: new() => T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
-	registerType<T>(ctor: new() => T, options?: Partial<RegistrationOptions<T>>): Container;
+	registerType<T>(ctor: new(...args: any[]) => T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
+	registerType<T>(ctor: new(...args: any[]) => T, options?: Partial<RegistrationOptions<T>>): Container;
 
 	registerInstance<T>(instance: T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
 	registerInstance<T>(instance: T, options?: Partial<RegistrationOptions<T>>): Container;
