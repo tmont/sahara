@@ -194,7 +194,7 @@ class Container extends EventEmitter {
 	 * Resolve a type to an instance synchronously
 	 *
 	 * @param {String|Function} key The resolution key or constructor to resolve
-	 * @param {Object} [context] Resolver context used internally
+	 * @param {{ history: [] }} [context] Resolver context used internally
 	 * @return {*} The resolved object
 	 */
 	resolveSync(key, context) {
