@@ -2,7 +2,7 @@ import { Graph } from 'tarjan-graph';
 
 type RequiredKeyRegistrationOptions<T> = Partial<RegistrationOptions<T>> & Pick<RegistrationOptions<T>, 'key'>
 type Factory<T> = (container: Container) => T | Promise<T>;
-type ResolutionKey<T = {}> = string | { new(): T };
+type ResolutionKey<T = {}> = string | { new(...args: any[]): T };
 type EventListener = (...args: any[]) => void;
 type RegistrationType = 'type' | 'factory' | 'instance'
 type Resolver<T> = (key: ResolutionKey<T>, context?: ResolutionContext) => Promise<T>;
@@ -102,7 +102,7 @@ declare class TransientLifetime extends Lifetime {}
 
 interface TypeInfo<T = {}> {
 	args: Array<{ position: number, type: string, name: string }>;
-	ctor: new() => T;
+	ctor: new(...args: any[]) => T;
 	name: string;
 }
 
