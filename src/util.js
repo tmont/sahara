@@ -7,8 +7,10 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 	}
 
 	const docCommentRegex = [
-		//normal function or es6 class method
-		/^(?:function\s+)?(?:(\w+))?\s*\(([^)]*)\)\s*\{/,
+		//normal function
+		/^function\s+(?:(\w+))?\s*\(([^)]*)\)\s*\{/,
+		//es6 class method
+		/^(\w+)s*\(([^)]*)\)\s*\{/,
 		//class with constructor
 		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*\{/,
 		//class without constructor
@@ -35,7 +37,7 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 
 	const typeName = key || data[1];
 	const signature = (data[2] || '').trim();
-	if (!typeName) {
+	if (!typeName || typeName === 'function') {
 		throw new Error('A resolution key must be given if a named function is not');
 	}
 
