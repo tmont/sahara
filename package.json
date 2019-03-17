@@ -22,12 +22,12 @@
 		"url": "https://github.com/tmont/sahara.git"
 	},
 	"dependencies": {
-		"tarjan-graph": "1.0.1"
+		"tarjan-graph": "2.0.0"
 	},
 	"devDependencies": {
-		"mocha": "4.0.1",
-		"should": "13.1.2",
-		"typescript": "2.5.3"
+		"mocha": "6.0.2",
+		"should": "13.2.3",
+		"typescript": "3.3.3333"
 	},
 	"scripts": {
 		"test": "./node_modules/.bin/mocha -R dot --recursive tests",
