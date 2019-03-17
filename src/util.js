@@ -50,6 +50,10 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 	if (!ignoreSignature && signature) {
 		signature.split(',').forEach((param, i) => {
 			const paramTrimmed = param.trim();
+			if (!paramTrimmed) {
+				//dangling comma
+				return;
+			}
 			//ferret out the type of each argument based on inline jsdoc:
 			//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs
 			const data = /^\/\*\*\s*([^*\s]+?)\s*\*+\/\s*(\w+)\s*$/.exec(paramTrimmed);

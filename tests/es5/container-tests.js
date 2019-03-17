@@ -322,6 +322,25 @@ describe('Container', () => {
 			foo.bar2.should.equal(bar);
 		});
 
+		it('should handle dangling commas', function() {
+			function Bar() {}
+
+			function Foo(/** Bar */bar, /** Bar */bar2,) {
+				this.bar = bar;
+				this.bar2 = bar2;
+			}
+
+			const bar = new Bar();
+			const foo = new Container()
+				.registerInstance(bar)
+				.registerType(Foo)
+				.resolveSync('Foo');
+
+			foo.should.be.instanceOf(Foo);
+			foo.bar.should.equal(bar);
+			foo.bar2.should.equal(bar);
+		});
+
 		it('should throw if signature does not contain type info', function() {
 			function Foo(bar) {
 				this.bar = bar;
