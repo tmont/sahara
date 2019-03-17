@@ -635,6 +635,12 @@ describe('Container', () => {
 			parent.createChildContainer().parent.should.equal(parent);
 		});
 
+		it('should set "Container" registration to child container', function() {
+			const parent = new Container();
+			const child = parent.createChildContainer();
+			child.resolveSync('Container').should.equal(child);
+		});
+
 		it('should inherit events from parent', function() {
 			function Foo() {}
 			const parent = new Container().registerType(Foo);

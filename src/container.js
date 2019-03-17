@@ -51,7 +51,7 @@ function getKeyFromCtor(ctor) {
 	return ctor.name;
 }
 function getKeyFromInstance(instance) {
-	return instance && instance.constructor && instance.constructor.name;
+	return instance && instance.constructor && getKeyFromCtor(instance.constructor);
 }
 
 class Registration {
@@ -355,6 +355,7 @@ class Container extends EventEmitter {
 		Object.keys(this.registrations).forEach((key) => {
 			childContainer.registrations[key] = this.registrations[key];
 		});
+		childContainer.registerInstance(childContainer);
 
 		childContainer.graph = this.graph.clone();
 
