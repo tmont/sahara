@@ -8,15 +8,15 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 
 	const docCommentRegex = [
 		//normal function
-		/^function\s+(?:(\w+))?\s*\(([^)]*)\)\s*\{/,
+		/^function\s+(?:(\w+))?\s*\(([^)]*)\)\s*{/,
 		//es6 class method
-		/^(\w+)s*\(([^)]*)\)\s*\{/,
+		/^(\w+)s*\(([^)]*)\)\s*{/,
 		//class with constructor
-		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*\{/,
+		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*{/,
 		//class without constructor
 		/^class(?:[\s+](\w+))?/,
 		//fat arrow functions (always anonymous, so first group capture must be empty)
-		/^()\(?([^)]*)\)?\s*=>\s*\{/
+		/^()\(?([^)]*)\)?\s*=>\s*{/
 	];
 
 	let data;
