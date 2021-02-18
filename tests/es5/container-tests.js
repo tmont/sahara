@@ -341,16 +341,6 @@ describe('Container', () => {
 			foo.bar2.should.equal(bar);
 		});
 
-		it('should throw if signature does not contain type info', function() {
-			function Foo(bar) {
-				this.bar = bar;
-			}
-
-			(function() { new Container().registerType(Foo); })
-				.should.throwError('Unable to determine type of parameter at ' +
-					'position 1 ("bar") for type "Foo"; are you missing a doc comment?');
-		});
-
 		it('should detect cyclic dependencies', function() {
 			function Foo(/** Bar */bar) {}
 			function Bar(/** Foo */foo) {}
@@ -379,6 +369,247 @@ describe('Container', () => {
 
 			fetchCalled.should.equal(true, 'lifetime.fetch() should have been called');
 			storeCalled.should.equal(true, 'lifetime.store() should have been called');
+		});
+
+		describe('without doc comments', () => {
+			it('should fail to resolve if doc comment is missing and no arg is registered', async function() {
+				function Foo(bar) {
+					this.bar = bar;
+				}
+
+				await new Container().registerType(Foo).resolve(Foo)
+					.should.rejectedWith('Nothing with key "$arg:bar" is registered in the container; ' +
+						'error occurred while resolving "Foo" -> "$arg:bar"; you may be missing a doc comment ' +
+						'or a call to registerAliasAsArg');
+			});
+
+			it('should fail to resolveSync if doc comment is missing and no arg is registered', async function() {
+				function Foo(bar) {
+					this.bar = bar;
+				}
+
+				(function() { new Container().registerType(Foo).resolveSync(Foo); })
+					.should.throwError('Nothing with key "$arg:bar" is registered in the container; ' +
+						'error occurred while resolving "Foo" -> "$arg:bar"; you may be missing a doc comment ' +
+						'or a call to registerAliasAsArg');
+			});
+
+			it('should resolveSync via named argument type without doc comment', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerType(Bar)
+					.registerArgAlias('Bar', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+			});
+
+			it('should resolve via named argument type without doc comment', async function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerType(Bar)
+					.registerArgAlias('Bar', 'someNamedArg');
+
+				const resolved = await container.resolve(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+			});
+
+			it('should resolveSync via named argument instance without doc comment', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const barInstance = new Bar();
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerInstance(barInstance, 'bar')
+					.registerArgAlias('bar', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.equal(barInstance);
+			});
+
+			it('should register instance and arg alias at same time', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const barInstance = new Bar();
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerInstanceAndArgAlias(barInstance, 'bar', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.equal(barInstance);
+			});
+
+			it('should resolveSync via named argument factory without doc comment', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerFactory(() => new Bar(), 'bar')
+					.registerArgAlias('bar', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+			});
+
+			it('should register factory and arg alias at the same time', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerFactoryAndArgAlias(() => new Bar(), 'bar', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+			});
+
+			it('should register type and arg alias at the same time without explicit key', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerTypeAndArgAlias(Bar, 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+
+				container.resolveSync(Bar).should.be.instanceOf(Bar);
+			});
+
+			it('should register type and arg alias with explicit key', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerTypeAndArgAlias(Bar, 'Barbie', 'someNamedArg');
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+
+				container.resolveSync('Barbie').should.be.instanceOf(Bar);
+				container.isRegistered(Bar).should.equal(false);
+			});
+
+			it('should register type and arg alias via options param', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				function Bar() {
+					this.hello = 'world';
+				}
+
+				const container = new Container()
+					.registerType(Foo)
+					.registerType(Bar, {
+						argAlias: 'someNamedArg',
+					});
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.be.instanceOf(Bar);
+				resolved.bar.hello.should.equal('world');
+
+				container.isRegistered(Bar).should.equal(true);
+				container.resolveSync(Bar).should.be.instanceOf(Bar);
+			});
+
+			it('should register instance and arg alias via options param', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				const instance = {};
+				const container = new Container()
+					.registerType(Foo)
+					.registerInstance(instance, {
+						key: 'meh',
+						argAlias: 'someNamedArg',
+					});
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.equal(instance);
+
+				container.resolveSync('meh').should.equal(instance);
+			});
+
+			it('should register factory and arg alias via options param', function() {
+				function Foo(someNamedArg) {
+					this.bar = someNamedArg;
+				}
+
+				const instance = {};
+				const factory = () => instance;
+				const container = new Container()
+					.registerType(Foo)
+					.registerFactory(factory, {
+						key: 'meh',
+						argAlias: 'someNamedArg',
+					});
+
+				const resolved = container.resolveSync(Foo);
+				resolved.bar.should.equal(instance);
+
+				container.resolveSync('meh').should.equal(instance);
+			});
 		});
 	});
 
@@ -683,6 +914,37 @@ describe('Container', () => {
 			child.resolveSync(Foo);
 			resolving.should.equal(1);
 			building.should.equal(1);
+		});
+	});
+
+	describe('aliases', function() {
+		it('should register and resolve alias', () => {
+			const instance = {};
+			const container = new Container()
+				.registerInstance(instance, 'foo')
+				.registerAlias('foo', 'bar');
+
+			container.resolveSync('foo').should.equal(instance);
+			container.resolveSync('bar').should.equal(instance);
+		});
+
+		it('should throw error if key is not resolved yet', () => {
+			(function() { new Container().registerAlias('foo', 'bar'); })
+				.should.throwError('Cannot register alias "bar" because nothing with ' +
+					'key "foo" is registered in the container');
+		});
+
+		it('should require key to be a string', () => {
+			class Foo {}
+			(function() { new Container().registerAlias(Foo, 'bar'); })
+				.should.throwError('key must be a string');
+		});
+
+		it('should require alias to be a string', () => {
+			class Foo {}
+
+			(function() { new Container().registerAlias('foo', Foo); })
+				.should.throwError('alias must be a string');
 		});
 	});
 });

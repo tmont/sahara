@@ -18,20 +18,21 @@ type BuildingEventListener = (typeInfo: TypeInfo) => void;
 type BuiltEvent = 'built'
 type BuiltEventListener = (typeInfo: TypeInfo, instance: any) => void;
 
-interface RegistrationOptions<T> {
-	readonly key: string;
-	readonly lifetime: Lifetime;
-	readonly injections: Injection<T>[];
+export interface RegistrationOptions<T> {
+	key: string;
+	lifetime: Lifetime;
+	injections: Injection<T>[];
+	argAlias: string;
 }
 
-interface Registration<T> {
+export interface Registration<T> {
 	readonly name: string;
 	readonly lifetime: Lifetime;
 	readonly injections: Injection<T>[];
 }
 
 interface ResolutionContext {
-	readonly history: Registration<any>[]
+	readonly history: Registration<any>[];
 }
 
 declare class EventEmitter {
@@ -51,14 +52,22 @@ declare class Container extends EventEmitter {
 
 	registerType<T>(ctor: new(...args: any[]) => T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
 	registerType<T>(ctor: new(...args: any[]) => T, options?: Partial<RegistrationOptions<T>>): Container;
+	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, alias: string): Container;
+	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, key: string | null, alias: string): Container;
 
 	registerInstance<T>(instance: T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
 	registerInstance<T>(instance: T, options?: Partial<RegistrationOptions<T>>): Container;
+	registerInstanceAndArgAlias<T>(instance: T, alias: string): Container;
+	registerInstanceAndArgAlias<T>(instance: T, key: string | null, alias: string): Container;
 
 	registerFactory<T>(factory: Factory<T>, key: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
 	registerFactory<T>(factory: Factory<T>, options: RequiredKeyRegistrationOptions<T>): Container;
+	registerFactoryAndArgAlias<T>(factory: Factory<T>, key: string, alias: string): Container;
 
-	isRegistered<T>(key: ResolutionKey<T>): boolean
+	registerAlias(key: string, alias: string): Container;
+	registerArgAlias(key: string, alias: string): Container;
+
+	isRegistered<T>(key: ResolutionKey<T>): boolean;
 
 	resolve<T>(key: ResolutionKey<T>, context?: ResolutionContext): Promise<T>;
 	resolveSync<T>(key: ResolutionKey<T>, context?: ResolutionContext): T;
@@ -66,10 +75,10 @@ declare class Container extends EventEmitter {
 	tryResolve<T>(key: ResolutionKey<T>): Promise<T | undefined>;
 	tryResolveSync<T>(key: ResolutionKey<T>): T | undefined;
 
-	inject<T>(instance: T, key: string): Promise<void>
-	injectSync<T>(instance: T, key: string): void
+	inject<T>(instance: T, key: string): Promise<void>;
+	injectSync<T>(instance: T, key: string): void;
 
-	createChildContainer(withEvents?: boolean): Container
+	createChildContainer(withEvents?: boolean): Container;
 
 	on(name: RegisteringEvent, listener: RegisteringEventListener): void;
 	on(name: ResolvingEvent, listener: ResolvingEventListener): void;

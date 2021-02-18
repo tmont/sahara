@@ -1,4 +1,4 @@
-import {Container, inject, lifetime, TypeInfo} from '../../';
+import {Container, inject, lifetime, Registration, TypeInfo} from '../../';
 
 interface IFoo {
 	bar: string
@@ -32,7 +32,13 @@ const container = new Container();
 container.on('registering', (name, type) => {
 	switch (type) {
 		case 'type':
+		case 'factory':
+		case 'instance':
 			break;
+		default:
+			const x: never = type;
+			break;
+
 	}
 });
 container.on('resolved', (name, instance) => {
@@ -106,6 +112,12 @@ container.builder.emit('building');
 container.builder.emit('built');
 
 container.registerFactory(container => new Foo(), 'asdf');
+
+// argument aliases
+container
+	.registerFactory(() => new Foo(), 'foo')
+	.registerAlias('foo', 'other-foo')
+	.registerArgAlias('foo', 'other-foo');
 
 // custom lifetime
 const myLifetime = {

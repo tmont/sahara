@@ -44,18 +44,25 @@ As of v3.0.0 there is support for ES6 features such as classes and fat-arrow fun
 
 ## Usage
 ### API
-All of these are explained in mind-numbing detail below.
+All of these are explained in mind-numbing detail below. See also the 
+[TypeScript declarations](./index.d.ts).
 
 ```javascript
 class Container {
 	registerType(ctor[, options]) {}
 	registerType(ctor[, key, lifetime, injection, injection...]) {}
+	registerTypeAsArg(ctor[,options]) {}
+	registerTypeAsArg(ctor[, key, lifetime, injection, injection...]) {}
 
 	registerInstance(instance[, options]) {}
 	registerInstance(instance[, key, lifetime, injection, injection...]) {}
+	registerInstanceAsArg(instance[, options]) {}
+	registerInstanceAsArg(instance[, key, lifetime, injection, injection...]) {}
 
 	registerFactory(factory[, options]) {}
 	registerFactory(factory[, key, lifetime, injection, injection...]) {}
+	registerFactoryAsArg(factory[, options]) {}
+	registerFactoryAsArg(factory[, key, lifetime, injection, injection...]) {}
 
 	isRegistered(key) {}
 
@@ -77,8 +84,7 @@ sahara.inject = {
 
 sahara.lifetime = {
 	transient: () => {},
-	memory: () => {},
-	external: (manager) => {}
+	memory: () => {}
 };
 ```
 
@@ -140,7 +146,7 @@ the constructor arguments.
 Since JavaScript isn't even close to a statically typed language, and doesn't
 have a reflection API, we have to use doc comments to specify the types.
 Specifically, they must be
-[inline doc comments](https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs).
+[inline doc comments](https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs). 
 
 ```javascript
 function Foo(message) { this.message = message; }
@@ -157,6 +163,39 @@ container
 
 **NOTE**: When using `registerType`, you *MUST* register a class or a function that
 is a constructor.
+
+#### Registering arguments
+__As of v6.0.0__ you can use the `register*AsArg()` methods to register a specific
+_argument name_. This will eliminate the need for doc comments and play nice with bundlers
+that remove comments. The one caveat is that these registrations apply to _all_ resolutions
+where the argument name matches. So _any_ method with a parameter named `foo` will be
+resolved by whatever you registered with `registerAsType(Foo, 'foo')`.
+
+Note that you __cannot use doc comments with register*AsArg() functions__. In other
+words, your function signature must not have a doc comment for arguments that are 
+registered via `register*AsArg()`. Doc comments take precedence and will be used instead
+of the named argument key.
+
+For example:
+
+```javascript
+class Foo {
+	constructor(arg1, arg2) {}
+}
+
+class Bar {}
+class Baz {}
+
+container
+    .registerType(Foo)
+    .registerTypeAsArg(Bar, 'arg1')
+    .registerInstanceAsArg(new Baz(), 'arg2')
+    .resolveSync(Foo);
+```
+
+Internally this actually registers the `Bar` type with resolution key `$arg:arg1`. So you
+can also do `container.resolve('$arg:arg1')`. This is an internal implementation detail and 
+should not be relied upon (i.e. the `$arg:` prefix could change at any time).
 
 #### Named functions
 By default, Sahara will use the name of the class or constructor as the resolution key.

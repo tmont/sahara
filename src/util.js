@@ -1,4 +1,6 @@
-exports.getTypeInfo = (ctor, key, ignoreSignature) => {
+exports.argPrefix = '$arg:';
+
+exports.getTypeInfo = (ctor, key) => {
 	if (typeof(ctor) !== 'function') {
 		const message = ctor && ctor.constructor
 			? 'instance of ' + ctor.constructor.name
@@ -47,7 +49,7 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 		name: typeName
 	};
 
-	if (!ignoreSignature && signature) {
+	if (signature) {
 		signature.split(',').forEach((param, i) => {
 			const paramTrimmed = param.trim();
 			if (!paramTrimmed) {
@@ -57,19 +59,23 @@ exports.getTypeInfo = (ctor, key, ignoreSignature) => {
 			//ferret out the type of each argument based on inline jsdoc:
 			//https://code.google.com/p/jsdoc-toolkit/wiki/InlineDocs
 			const data = /^\/\*\*\s*([^*\s]+?)\s*\*+\/\s*(\w+)\s*$/.exec(paramTrimmed);
-			if (!data) {
-				throw new Error(
-					`Unable to determine type of parameter at position ${i + 1}` +
-					` ("${paramTrimmed}") for type "${typeName}"; are you ` +
-					'missing a doc comment?'
-				);
-			}
 
-			typeInfo.args.push({
-				position: i,
-				type: data[1],
-				name: data[2]
-			});
+			if (!data) {
+				// assume it will be resolved via implicit arg:* syntax
+				typeInfo.args.push({
+					position: i,
+					type: `${exports.argPrefix}${paramTrimmed}`,
+					name: paramTrimmed,
+					parsedAs: 'arg'
+				});
+			} else {
+				typeInfo.args.push({
+					position: i,
+					type: data[1],
+					name: data[2],
+					parsedAs: 'doc-comment'
+				});
+			}
 		});
 	}
 

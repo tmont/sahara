@@ -4,7 +4,7 @@ const lifetimes = require('./lifetime');
 const EventEmitter = require('./event-emitter');
 const utils = require('./util');
 
-function createUnregisteredError(key, context) {
+function getUnregisteredErrorMessage(key, context) {
 	let message = `Nothing with key "${key}" is registered in the container`;
 	if (context && context.history.length) {
 		message += '; error occurred while resolving ';
@@ -13,7 +13,12 @@ function createUnregisteredError(key, context) {
 			.join(' -> ');
 	}
 
-	return new Error(message);
+	if (key.startsWith(utils.argPrefix)) {
+		message += `; you may be missing a ` +
+			`doc comment or a call to registerAliasAsArg`;
+	}
+
+	return message;
 }
 
 function createResolverContext() {
@@ -23,8 +28,6 @@ function createResolverContext() {
 }
 
 function resolveSignatureToOptions(args) {
-	args = [].slice.call(args, 1);
-
 	if (args.length === 0) {
 		return {};
 	}
@@ -38,6 +41,7 @@ function resolveSignatureToOptions(args) {
 	if (typeof(args[0]) === 'string') {
 		options.key = args[0];
 	}
+
 	if (args[1]) {
 		options.lifetime = args[1];
 	}
@@ -83,6 +87,13 @@ class FactoryRegistration extends Registration {
 	}
 }
 
+class DelegateRegistration extends Registration {
+	constructor(alias, registration) {
+		super(alias, registration.lifetime, registration.injections);
+		this.delegate = registration;
+	}
+}
+
 class Container extends EventEmitter {
 	constructor(parent) {
 		super();
@@ -95,56 +106,97 @@ class Container extends EventEmitter {
 
 	/**
 	 * Registers a type from a constructor
-	 *
-	 * @param {Function} ctor The constructor of the type to register
-	 * @param {String} [key] The resolution key
-	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
-	 * to sahara.Lifetime.Transient
-	 * @param {Object...} [injections] Injections to perform upon resolution
-	 * @return {Container}
 	 */
-	registerType(ctor, key, lifetime, injections) {
-		const options = resolveSignatureToOptions(arguments);
+	registerType(ctor, ...args) {
+		const options = resolveSignatureToOptions(args);
 		const typeInfo = utils.getTypeInfo(ctor, options.key);
-		const typeName = typeInfo.name;
+		const key = typeInfo.name;
 
-		this.emit('registering', typeName, 'type');
-		this.registrations[typeName] = new TypeRegistration(
-			typeName,
-			options.lifetime,
-			options.injections,
-			typeInfo
-		);
+		this.emit('registering', key, 'type');
+
+		this.registrations[key] = new TypeRegistration(key, options.lifetime, options.injections, typeInfo);
+		if (options.argAlias && typeof(options.argAlias) === 'string') {
+			this.registerArgAlias(key, options.argAlias);
+		}
 
 		try {
-			this.graph.addAndVerify(typeName, typeInfo.args.map(info => info.type));
+			this.graph.addAndVerify(key, typeInfo.args.map(info => info.type));
 		} catch (e) {
-			throw new Error(`${typeName}'s dependencies create a cycle: ${e.message}`);
+			throw new Error(`${key}'s dependencies create a cycle: ${e.message}`);
 		}
 
 		return this;
 	}
 
+	registerTypeAndArgAlias(ctor, key, alias) {
+		if (typeof(alias) === 'undefined') {
+			alias = key;
+			key = null;
+		}
+
+		this.registerType(ctor, {
+			key,
+			argAlias: alias,
+		});
+
+		return this;
+	}
+
+	registerAlias(key, alias) {
+		if (typeof(key) !== 'string') {
+			throw new Error('key must be a string');
+		}
+		if (typeof(alias) !== 'string') {
+			throw new Error('alias must be a string');
+		}
+
+		const delegate = this.registrations[key];
+		if (!delegate) {
+			throw new Error(`Cannot register alias "${alias}" because nothing with key ` +
+				`"${key}" is registered in the container`);
+		}
+
+		this.registrations[alias] = new DelegateRegistration(alias, delegate);
+		return this;
+	}
+
+	registerArgAlias(key, alias) {
+		return this.registerAlias(key, utils.argPrefix + alias);
+	}
+
 	/**
-	 * Registers a specific instance of a type
-	 *
-	 * @param {Object} instance The instance to store
-	 * @param {String} [key] The resolution key
-	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
-	 * to sahara.Lifetime.Transient
-	 * @param {Object...} [injections] Injections to perform upon resolution
-	 * @return {Container}
+	 * Registers a specific object instance
 	 */
-	registerInstance(instance, key, lifetime, injections) {
-		const options = resolveSignatureToOptions(arguments);
+	registerInstance(instance, ...args) {
+		const options = resolveSignatureToOptions(args);
 		options.key = options.key || getKeyFromInstance(instance);
+
 		this.emit('registering', options.key, 'instance');
+
 		this.registrations[options.key] = new InstanceRegistration(
 			options.key,
 			options.lifetime,
 			options.injections,
-			instance
+			instance,
 		);
+
+		if (options.argAlias && typeof(options.argAlias) === 'string') {
+			this.registerArgAlias(options.key, options.argAlias);
+		}
+
+		return this;
+	}
+
+	registerInstanceAndArgAlias(instance, key, alias) {
+		if (typeof(alias) === 'undefined') {
+			alias = key;
+			key = null;
+		}
+
+		this.registerInstance(instance, {
+			key,
+			argAlias: alias,
+		});
 
 		return this;
 	}
@@ -152,28 +204,35 @@ class Container extends EventEmitter {
 	/**
 	 * Registers a factory function for a type that will create
 	 * the object
-	 *
-	 * @param {Function} factory A function that creates the object; this function
-	 * should take one parameter, the container
-	 * @param {String} [key] The resolution key
-	 * @param {Object} [lifetime] The lifetime manager of this object, defaults
-	 * to sahara.Lifetime.Transient
-	 * @param {Object...} [injections] Injections to perform upon resolution
-	 * @return {Container}
 	 */
-	registerFactory(factory, key, lifetime, injections) {
-		const options = resolveSignatureToOptions(arguments);
+	registerFactory(factory, ...args) {
+		const options = resolveSignatureToOptions(args);
 		if (!options.key) {
 			throw new Error('"options.key" must be passed to registerFactory()');
 		}
 
 		this.emit('registering', options.key, 'factory');
+
 		this.registrations[options.key] = new FactoryRegistration(
 			options.key,
 			options.lifetime,
 			options.injections,
-			factory
+			factory,
 		);
+
+		if (options.argAlias && typeof(options.argAlias) === 'string') {
+			this.registerArgAlias(options.key, options.argAlias);
+		}
+
+		return this;
+	}
+
+	registerFactoryAndArgAlias(factory, key, alias) {
+		this.registerFactory(factory, {
+			key,
+			argAlias: alias,
+		});
+
 		return this;
 	}
 
@@ -203,13 +262,17 @@ class Container extends EventEmitter {
 		}
 		context = context || createResolverContext();
 
-		const registration = this.registrations[key];
+		let registration = this.registrations[key];
 		this.emit('resolving', key);
 		if (!registration) {
-			throw createUnregisteredError(key, context);
+			throw new Error(getUnregisteredErrorMessage(key, context));
 		}
 
 		context.history.push(registration);
+
+		if (registration instanceof DelegateRegistration) {
+			registration = registration.delegate;
+		}
 
 		const existing = registration.lifetime.fetch();
 		if (existing) {
@@ -247,13 +310,17 @@ class Container extends EventEmitter {
 		}
 		context = context || createResolverContext();
 
-		const registration = this.registrations[key];
+		let registration = this.registrations[key];
 		this.emit('resolving', key);
 		if (!registration) {
-			return Promise.reject(createUnregisteredError(key, context));
+			throw new Error(getUnregisteredErrorMessage(key, context));
 		}
 
 		context.history.push(registration);
+
+		if (registration instanceof DelegateRegistration) {
+			registration = registration.delegate;
+		}
 
 		const existing = registration.lifetime.fetch();
 		if (existing) {
@@ -261,25 +328,22 @@ class Container extends EventEmitter {
 			return existing;
 		}
 
-		try {
-			let instance;
-			if (registration instanceof InstanceRegistration) {
-				instance = registration.instance;
-			} else if (registration instanceof TypeRegistration) {
-				instance = await this.builder.newInstance(registration.typeInfo, context);
-			} else if (registration instanceof FactoryRegistration) {
-				instance = await registration.factory(this);
-			}
+		let instance;
 
-			context.history.pop();
-
-			await this.inject(instance, key);
-			registration.lifetime.store(instance);
-			this.emit('resolved', key, instance);
-			return instance;
-		} catch (e) {
-			return Promise.reject(e)
+		if (registration instanceof InstanceRegistration) {
+			instance = registration.instance;
+		} else if (registration instanceof TypeRegistration) {
+			instance = await this.builder.newInstance(registration.typeInfo, context);
+		} else if (registration instanceof FactoryRegistration) {
+			instance = await registration.factory(this);
 		}
+
+		context.history.pop();
+
+		await this.inject(instance, key);
+		registration.lifetime.store(instance);
+		this.emit('resolved', key, instance);
+		return instance;
 	}
 
 	/**
@@ -319,7 +383,7 @@ class Container extends EventEmitter {
 		key = key || getKeyFromInstance(instance);
 		const registration = this.registrations[key];
 		if (!registration) {
-			return Promise.reject(createUnregisteredError(key));
+			return Promise.reject(new Error(getUnregisteredErrorMessage(key)));
 		}
 
 		return Promise.all(registration.injections.map(injection => injection.inject(instance, this)));
@@ -335,7 +399,7 @@ class Container extends EventEmitter {
 		key = key || getKeyFromInstance(instance);
 		const registration = this.registrations[key];
 		if (!registration) {
-			throw createUnregisteredError(key);
+			throw new Error(getUnregisteredErrorMessage(key));
 		}
 
 		registration.injections.map((injection) => {
