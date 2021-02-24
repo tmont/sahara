@@ -51,18 +51,15 @@ All of these are explained in mind-numbing detail below. See also the
 class Container {
 	registerType(ctor[, options]) {}
 	registerType(ctor[, key, lifetime, injection, injection...]) {}
-	registerTypeAsArg(ctor[,options]) {}
-	registerTypeAsArg(ctor[, key, lifetime, injection, injection...]) {}
+	registerTypeAndArgAlias(ctor, key, argAlias) {}
 
 	registerInstance(instance[, options]) {}
 	registerInstance(instance[, key, lifetime, injection, injection...]) {}
-	registerInstanceAsArg(instance[, options]) {}
-	registerInstanceAsArg(instance[, key, lifetime, injection, injection...]) {}
+	registerInstanceAndArgAlias(instance, key, argAlias) {}
 
 	registerFactory(factory[, options]) {}
 	registerFactory(factory[, key, lifetime, injection, injection...]) {}
-	registerFactoryAsArg(factory[, options]) {}
-	registerFactoryAsArg(factory[, key, lifetime, injection, injection...]) {}
+	registerFactoryAndArgAlias(instance, key, argAlias) {}
 
 	isRegistered(key) {}
 
@@ -165,7 +162,7 @@ container
 is a constructor.
 
 #### Registering arguments
-__As of v6.0.0__ you can use the `register*AsArg()` methods to register a specific
+__As of v6.0.0__ you can use the `register*AndArgAlias()` methods to register a specific
 _argument name_. This will eliminate the need for doc comments and play nice with bundlers
 that remove comments. The one caveat is that these registrations apply to _all_ resolutions
 where the argument name matches. So _any_ method with a parameter named `foo` will be
@@ -173,7 +170,7 @@ resolved by whatever you registered with `registerAsType(Foo, 'foo')`.
 
 Note that you __cannot use doc comments with register*AsArg() functions__. In other
 words, your function signature must not have a doc comment for arguments that are 
-registered via `register*AsArg()`. Doc comments take precedence and will be used instead
+registered via `register*AndArgAlias()`. Doc comments take precedence and will be used instead
 of the named argument key.
 
 For example:
@@ -196,6 +193,22 @@ container
 Internally this actually registers the `Bar` type with resolution key `$arg:arg1`. So you
 can also do `container.resolve('$arg:arg1')`. This is an internal implementation detail and 
 should not be relied upon (i.e. the `$arg:` prefix could change at any time).
+
+#### Register aliases
+__As of v6.0.0__ you can use `registerAlias()` to register an alias of a previously
+registered type/instance/object.
+
+```javascript
+const instance = {};
+
+container
+    .registerInstance(instance, 'myInstance')
+    .registerAlias('myInstance', 'somethingElse');
+
+console.log(container.resolveSync('myInstance') === container.resolveSync('somethingElse')); // true
+```
+
+This is the same mechanism by which __arg aliases__ work as described above.
 
 #### Named functions
 By default, Sahara will use the name of the class or constructor as the resolution key.
