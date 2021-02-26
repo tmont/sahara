@@ -166,7 +166,7 @@ __As of v6.0.0__ you can use the `register*AndArgAlias()` methods to register a 
 _argument name_. This will eliminate the need for doc comments and play nice with bundlers
 that remove comments. The one caveat is that these registrations apply to _all_ resolutions
 where the argument name matches. So _any_ method with a parameter named `foo` will be
-resolved by whatever you registered with `registerAsType(Foo, 'foo')`.
+resolved by whatever you registered with `registerTypeAndArgAlias(Foo, 'foo')`.
 
 Note that you __cannot use doc comments with register*AsArg() functions__. In other
 words, your function signature must not have a doc comment for arguments that are 
@@ -185,8 +185,8 @@ class Baz {}
 
 container
     .registerType(Foo)
-    .registerTypeAsArg(Bar, 'arg1')
-    .registerInstanceAsArg(new Baz(), 'arg2')
+    .registerTypeAndArgAlias(Bar, 'arg1')
+    .registerInstanceAndArgAlias(new Baz(), 'myBarInstance', 'arg2')
     .resolveSync(Foo);
 ```
 

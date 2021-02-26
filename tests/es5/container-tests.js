@@ -922,16 +922,48 @@ describe('Container', () => {
 			const instance = {};
 			const container = new Container()
 				.registerInstance(instance, 'foo')
-				.registerAlias('foo', 'bar');
+				.registerAlias('foo', 'alias');
 
 			container.resolveSync('foo').should.equal(instance);
-			container.resolveSync('bar').should.equal(instance);
+			container.resolveSync('alias').should.equal(instance);
 		});
 
-		it('should throw error if key is not resolved yet', () => {
-			(function() { new Container().registerAlias('foo', 'bar'); })
-				.should.throwError('Cannot register alias "bar" because nothing with ' +
-					'key "foo" is registered in the container');
+		it('should change the delegate for alias and retroactively resolve it correctly', () => {
+			const instance = {};
+			const instance2 = {};
+
+			const container = new Container()
+				.registerInstance(instance, 'foo')
+				.registerAlias('foo', 'alias')
+				.registerInstance(instance2, 'foo'); // re-register under same key
+
+			instance.should.not.equal(instance2);
+
+			container.resolveSync('alias').should.equal(instance2);
+		});
+
+		it('should propagate aliases to child containers', () => {
+			const instance = {};
+			const instance2 = {};
+
+			instance.should.not.equal(instance2);
+
+			const container = new Container()
+				.registerInstance(instance, 'foo')
+				.registerAlias('foo', 'alias');
+
+			container.resolveSync('alias').should.equal(instance);
+
+			const child = container.createChildContainer();
+
+			child.resolveSync('alias').should.equal(instance);
+
+			container.registerInstance(instance2, 'foo');
+			container.resolveSync('alias').should.equal(instance2);
+			child.resolveSync('alias').should.equal(instance);
+
+			child.registerInstance(instance2, 'foo');
+			child.resolveSync('alias').should.equal(instance2);
 		});
 
 		it('should require key to be a string', () => {
@@ -945,6 +977,18 @@ describe('Container', () => {
 
 			(function() { new Container().registerAlias('foo', Foo); })
 				.should.throwError('alias must be a string');
+		});
+
+		it('should detect cycles resulting from aliases', () => {
+			class Foo {
+				constructor(/** alias1 */arg) {}
+			}
+
+			(function() { new Container()
+				.registerInstance({}, 'foo')
+				.registerAlias('foo', 'alias1')
+				.registerType(Foo, 'foo');
+			}).should.throwError('foo\'s dependencies create a cycle: Detected 1 cycle:\n  alias1 -> foo -> alias1');
 		});
 	});
 });

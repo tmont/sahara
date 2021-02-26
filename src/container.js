@@ -4,13 +4,19 @@ const lifetimes = require('./lifetime');
 const EventEmitter = require('./event-emitter');
 const utils = require('./util');
 
+const getHistoryString = (context, current) => {
+	const history = context.history.concat([]);
+	if (current) {
+		history.push({ name: current });
+	}
+
+	return history.map(registration => `"${registration.name}"`).join(' -> ');
+}
+
 function getUnregisteredErrorMessage(key, context) {
 	let message = `Nothing with key "${key}" is registered in the container`;
 	if (context && context.history.length) {
-		message += '; error occurred while resolving ';
-		message += context.history.concat([{ name: key }])
-			.map(registration => `"${registration.name}"`)
-			.join(' -> ');
+		message += '; error occurred while resolving ' + getHistoryString(context, key);
 	}
 
 	if (key.startsWith(utils.argPrefix)) {
@@ -88,9 +94,9 @@ class FactoryRegistration extends Registration {
 }
 
 class DelegateRegistration extends Registration {
-	constructor(alias, registration) {
-		super(alias, registration.lifetime, registration.injections);
-		this.delegate = registration;
+	constructor(alias, delegateKey) {
+		super(alias);
+		this.delegateKey = delegateKey;
 	}
 }
 
@@ -102,6 +108,14 @@ class Container extends EventEmitter {
 		this.graph = new Graph();
 		this.builder = new ObjectBuilder(this.resolve.bind(this), this.resolveSync.bind(this));
 		this.registerInstance(this);
+	}
+
+	addDependencyToGraph(key, dependencies) {
+		try {
+			this.graph.addAndVerify(key, dependencies);
+		} catch (e) {
+			throw new Error(`${key}'s dependencies create a cycle: ${e.message}`);
+		}
 	}
 
 	/**
@@ -119,11 +133,7 @@ class Container extends EventEmitter {
 			this.registerArgAlias(key, options.argAlias);
 		}
 
-		try {
-			this.graph.addAndVerify(key, typeInfo.args.map(info => info.type));
-		} catch (e) {
-			throw new Error(`${key}'s dependencies create a cycle: ${e.message}`);
-		}
+		this.addDependencyToGraph(key, typeInfo.args.map(info => info.type));
 
 		return this;
 	}
@@ -150,13 +160,10 @@ class Container extends EventEmitter {
 			throw new Error('alias must be a string');
 		}
 
-		const delegate = this.registrations[key];
-		if (!delegate) {
-			throw new Error(`Cannot register alias "${alias}" because nothing with key ` +
-				`"${key}" is registered in the container`);
-		}
+		// this alias has a dependency on the thing it's aliasing
+		this.graph.addAndVerify(alias, [ key ]);
 
-		this.registrations[alias] = new DelegateRegistration(alias, delegate);
+		this.registrations[alias] = new DelegateRegistration(alias, key);
 		return this;
 	}
 
@@ -268,17 +275,13 @@ class Container extends EventEmitter {
 			throw new Error(getUnregisteredErrorMessage(key, context));
 		}
 
-		context.history.push(registration);
-
-		if (registration instanceof DelegateRegistration) {
-			registration = registration.delegate;
-		}
-
 		const existing = registration.lifetime.fetch();
 		if (existing) {
 			this.emit('resolved', key, existing);
 			return existing;
 		}
+
+		context.history.push(registration);
 
 		let instance;
 		if (registration instanceof InstanceRegistration) {
@@ -287,6 +290,8 @@ class Container extends EventEmitter {
 			instance = this.builder.newInstanceSync(registration.typeInfo, context);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
+		} else if (registration instanceof DelegateRegistration) {
+			instance = this.resolveSync(registration.delegateKey, context);
 		}
 
 		context.history.pop();
@@ -316,17 +321,13 @@ class Container extends EventEmitter {
 			throw new Error(getUnregisteredErrorMessage(key, context));
 		}
 
-		context.history.push(registration);
-
-		if (registration instanceof DelegateRegistration) {
-			registration = registration.delegate;
-		}
-
 		const existing = registration.lifetime.fetch();
 		if (existing) {
 			this.emit('resolved', key, existing);
 			return existing;
 		}
+
+		context.history.push(registration);
 
 		let instance;
 
@@ -336,6 +337,8 @@ class Container extends EventEmitter {
 			instance = await this.builder.newInstance(registration.typeInfo, context);
 		} else if (registration instanceof FactoryRegistration) {
 			instance = await registration.factory(this);
+		} else if (registration instanceof DelegateRegistration) {
+			instance = await this.resolve(registration.delegateKey, context);
 		}
 
 		context.history.pop();
