@@ -1,4 +1,4 @@
-import { Graph } from 'tarjan-graph';
+import Graph from 'tarjan-graph';
 
 type RequiredKeyRegistrationOptions<T> = Partial<RegistrationOptions<T>> & Pick<RegistrationOptions<T>, 'key'>
 type Factory<T> = (container: Container) => T | Promise<T>;

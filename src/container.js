@@ -1,4 +1,4 @@
-const Graph = require('tarjan-graph');
+const Graph = require('tarjan-graph').default;
 const ObjectBuilder = require('./object-builder');
 const lifetimes = require('./lifetime');
 const EventEmitter = require('./event-emitter');
