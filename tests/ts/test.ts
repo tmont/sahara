@@ -150,3 +150,6 @@ mappedContainer.resolve('otherName')
 
 console.log(mappedContainer.tryResolveSync('customName')?.myMethod(1, 2));
 
+const returned = mappedContainer.registerType(Foo);
+returned.resolveSync('customName').myMethod(1, 2);
+

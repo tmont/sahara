@@ -50,22 +50,22 @@ declare class Container<TMapping extends Record<string, any> = {}> extends Event
 
 	constructor(parent?: Container);
 
-	registerType<T>(ctor: new(...args: any[]) => T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
-	registerType<T>(ctor: new(...args: any[]) => T, options?: Partial<RegistrationOptions<T>>): Container;
-	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, alias: string): Container;
-	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, key: string | null, alias: string): Container;
+	registerType<T>(ctor: new(...args: any[]) => T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): this;
+	registerType<T>(ctor: new(...args: any[]) => T, options?: Partial<RegistrationOptions<T>>): this;
+	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, alias: string): this;
+	registerTypeAndArgAlias<T>(ctor: new(...args: any[]) => T, key: string | null, alias: string): this;
 
-	registerInstance<T>(instance: T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
-	registerInstance<T>(instance: T, options?: Partial<RegistrationOptions<T>>): Container;
-	registerInstanceAndArgAlias<T>(instance: T, alias: string): Container;
-	registerInstanceAndArgAlias<T>(instance: T, key: string | null, alias: string): Container;
+	registerInstance<T>(instance: T, key?: string, lifetime?: Lifetime, injections?: Injection<T>[]): this;
+	registerInstance<T>(instance: T, options?: Partial<RegistrationOptions<T>>): this;
+	registerInstanceAndArgAlias<T>(instance: T, alias: string): this;
+	registerInstanceAndArgAlias<T>(instance: T, key: string | null, alias: string): this;
 
-	registerFactory<T>(factory: Factory<T>, key: string, lifetime?: Lifetime, injections?: Injection<T>[]): Container;
-	registerFactory<T>(factory: Factory<T>, options: RequiredKeyRegistrationOptions<T>): Container;
-	registerFactoryAndArgAlias<T>(factory: Factory<T>, key: string, alias: string): Container;
+	registerFactory<T>(factory: Factory<T>, key: string, lifetime?: Lifetime, injections?: Injection<T>[]): this;
+	registerFactory<T>(factory: Factory<T>, options: RequiredKeyRegistrationOptions<T>): this;
+	registerFactoryAndArgAlias<T>(factory: Factory<T>, key: string, alias: string): this;
 
-	registerAlias(key: string, alias: string): Container;
-	registerArgAlias(key: string, alias: string): Container;
+	registerAlias(key: string, alias: string): this;
+	registerArgAlias(key: string, alias: string): this;
 
 	isRegistered<T>(key: ResolutionKey<T>): boolean;
 
@@ -84,7 +84,7 @@ declare class Container<TMapping extends Record<string, any> = {}> extends Event
 	inject<T>(instance: T, key: string): Promise<void>;
 	injectSync<T>(instance: T, key: string): void;
 
-	createChildContainer(withEvents?: boolean): Container;
+	createChildContainer(withEvents?: boolean): this;
 
 	on(name: RegisteringEvent, listener: RegisteringEventListener): void;
 	on(name: ResolvingEvent, listener: ResolvingEventListener): void;
