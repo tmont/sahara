@@ -29,9 +29,7 @@
 		"typescript": "4.6.4"
 	},
 	"scripts": {
-		"test": "./node_modules/.bin/mocha -R dot -t 10000 --recursive tests",
-		"lint": "./node_modules/.bin/tsc",
-		"ci": "npm run lint && npm run test"
+		"test": "./node_modules/.bin/mocha -R dot -t 10000 --recursive tests"
 	},
 	"typings": "./index.d.ts"
 }
