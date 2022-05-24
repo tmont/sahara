@@ -65,6 +65,7 @@ class Container {
 
 	resolve(key) {}
 	resolveSync(key) {}
+	tryResolve(key) {}
 	tryResolveSync(key) {}
 
 	inject(instance[, key]) {}

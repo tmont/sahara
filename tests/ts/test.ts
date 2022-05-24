@@ -92,7 +92,9 @@ container.resolveSync(Foo).myMethod(1, 2);
 container.resolve(Foo).then((foo) => foo.myMethod(1, 2));
 
 // foo might be undefined
-container.tryResolve(Foo).then((foo) => foo && foo.myMethod(1, 2));
+container.tryResolve(Foo).then((foo) => {
+	foo && foo.myMethod(1, 2);
+});
 const tryResolveSync = container.tryResolveSync(Foo);
 tryResolveSync && tryResolveSync.myMethod(1, 2);
 
@@ -131,4 +133,20 @@ container.registerType(Foo, { lifetime: myLifetime });
 const myFactory = (container: Container) => 'hello world';
 container.registerFactory(myFactory, 'yarp');
 container.registerFactory(myFactory, { key: 'yarp' });
+
+// container with mapping
+interface ResolutionMap {
+	customName: Foo;
+	otherName: NotFoo;
+}
+
+const mappedContainer = new Container<ResolutionMap>();
+const foo = mappedContainer.resolveSync('customName');
+foo.myMethod(1, 2);
+mappedContainer.resolve('otherName')
+	.then((notFoo) => {
+		console.log(notFoo.___yarp);
+	});
+
+console.log(mappedContainer.tryResolveSync('customName')?.myMethod(1, 2));
 

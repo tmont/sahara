@@ -42,7 +42,7 @@ declare class EventEmitter {
 	emit(name: string, ...args: any[]): void;
 }
 
-declare class Container extends EventEmitter {
+declare class Container<TMapping extends Record<string, any> = {}> extends EventEmitter {
 	readonly parent: Container | null;
 	readonly builder: ObjectBuilder;
 	readonly graph: Graph;
@@ -68,6 +68,12 @@ declare class Container extends EventEmitter {
 	registerArgAlias(key: string, alias: string): Container;
 
 	isRegistered<T>(key: ResolutionKey<T>): boolean;
+
+	resolve<K extends keyof TMapping>(key: K, context?: ResolutionContext): Promise<TMapping[K]>;
+	resolveSync<K extends keyof TMapping>(key: K, context?: ResolutionContext): TMapping[K];
+
+	tryResolve<K extends keyof TMapping>(key: K, context?: ResolutionContext): Promise<TMapping[K] | undefined>;
+	tryResolveSync<K extends keyof TMapping>(key: K, context?: ResolutionContext): TMapping[K] | undefined;
 
 	resolve<T>(key: ResolutionKey<T>, context?: ResolutionContext): Promise<T>;
 	resolveSync<T>(key: ResolutionKey<T>, context?: ResolutionContext): T;
