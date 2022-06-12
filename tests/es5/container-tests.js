@@ -178,8 +178,14 @@ describe('Container', () => {
 			resolved.should.equal(instance);
 		});
 
-		it('should throw if key is not provided', function() {
+		it('should throw if key is not provided for far arrow function', function() {
 			(function() { new Container().registerFactory(() => {}); })
+				.should
+				.throwError('"options.key" must be passed to registerFactory()');
+		});
+
+		it('should throw if key is not provided for anonymous function', function() {
+			(function() { new Container().registerFactory(function() {}); })
 				.should
 				.throwError('"options.key" must be passed to registerFactory()');
 		});

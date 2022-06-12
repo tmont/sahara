@@ -10,22 +10,24 @@ exports.getTypeInfo = (ctor, key) => {
 
 	const docCommentRegex = [
 		//normal function
-		/^function\s+(?:(\w+))?\s*\(([^)]*)\)\s*{/,
+		{ type: 'function', regex: /^function\s+(\w+)?\s*\(([^)]*)\)\s*{/ },
 		//es6 class method
-		/^(\w+)s*\(([^)]*)\)\s*{/,
+		{ type: 'method', regex: /^(\w+)\s*\(([^)]*)\)\s*{/ },
 		//class with constructor
-		/^class(?:[\s+](\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*{/,
+		{ type: 'class-with-ctor', regex: /^class(?:\s+(\w+))?[\s\S]+?constructor\s*\(([^)]*)\)\s*{/ },
 		//class without constructor
-		/^class(?:[\s+](\w+))?/,
+		{ type: 'class-without-ctor', regex: /^class(?:\s+(\w+))?/ },
 		//fat arrow functions (always anonymous, so first group capture must be empty)
-		/^()\(?([^)]*)\)?\s*=>\s*{/
+		{ type: 'fat-arrow', regex: /^()\(?([^)]*)\)?\s*=>/ },
 	];
 
 	let data;
+	let matched;
 
 	for (let i = 0; i < docCommentRegex.length; i++) {
-		data = docCommentRegex[i].exec(ctor.toString());
+		data = docCommentRegex[i].regex.exec(ctor.toString());
 		if (data) {
+			matched = docCommentRegex[i];
 			break;
 		}
 	}
@@ -37,7 +39,11 @@ exports.getTypeInfo = (ctor, key) => {
 		);
 	}
 
-	const typeName = key || data[1];
+	const typeName = key || data[1] ||
+		(matched.type === 'class-with-ctor' || matched.type === 'class-without-ctor' || matched.type === 'function' ?
+			ctor.name :
+			null
+		);
 	const signature = (data[2] || '').trim();
 	if (!typeName || typeName === 'function') {
 		throw new Error('A resolution key must be given if a named function is not');
