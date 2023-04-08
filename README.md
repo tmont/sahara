@@ -24,42 +24,28 @@ to determine dependencies.
 		* [Property injection](#property-injection)
 		* [Method injection](#method-injection)
 		* [Manual injection](#manual-injection)
-	* [Interception](#interception)
 	* [Creating child containers](#creating-child-containers)
 	* [Events](#events)
-* [Development](#development)
 
 
 ## Installation
-Install using NPM: `npm install sahara`
+Install using NPM: `npm install sahara`.
 
-**As of v5.0.0, there is no support for Node < v8.0.0. Use v4.x for node v0.10-v7.
-In addition, all asynchronous calls are Promise-based rather than callback-based.**
-
-As of v4.0.0, [interception](#interception) as been moved out of the
-default container. Use `require('sahara').interception.Container` to utilize
-interception.
-
-As of v3.0.0 there is support for ES6 features such as classes and fat-arrow functions.
+Requires Node >= v8.0.0.
 
 ## Usage
 ### API
-All of these are explained in mind-numbing detail below. See also the 
-[TypeScript declarations](./index.d.ts).
 
 ```javascript
 class Container {
-	registerType(ctor[, options]) {}
-	registerType(ctor[, key, lifetime, injection, injection...]) {}
+	registerType(ctor, options) {}
 	registerTypeAndArgAlias(ctor, key, argAlias) {}
 
-	registerInstance(instance[, options]) {}
-	registerInstance(instance[, key, lifetime, injection, injection...]) {}
-	registerInstanceAndArgAlias(instance, key, argAlias) {}
+	registerInstance(instance, options) {}
+	registerInstanceAndArgAlias(instance, key, argAlias = null) {}
 
-	registerFactory(factory[, options]) {}
-	registerFactory(factory[, key, lifetime, injection, injection...]) {}
-	registerFactoryAndArgAlias(instance, key, argAlias) {}
+	registerFactory(factory, options = {}) {}
+	registerFactoryAndArgAlias(instance, key, argAlias = null) {}
 
 	isRegistered(key) {}
 
@@ -68,37 +54,40 @@ class Container {
 	tryResolve(key) {}
 	tryResolveSync(key) {}
 
-	inject(instance[, key]) {}
-	injectSync(instance[, key]) {}
+	inject(instance, key = null) {}
+	injectSync(instance, key = null) {}
 
-	createChildContainer() {}
+	createChildContainer(withEvents = false) {}
 }
 
 sahara.inject = {
-	property: (name, key) => {},
-	propertyValue: (name, value) => {},
-	method: (name, args) => {}
+	property: (name, key) => PropertyInjection,
+	propertyValue: (name, value) => PropertyValueInjection,
+	method: (name, args) => MethodInjection
 };
 
 sahara.lifetime = {
-	transient: () => {},
-	memory: () => {}
+	transient: () => TransientLifetime,
+	memory: () => MemoryLifetime
 };
 ```
 
 Of note: there are two ways to register something in the container. You can
-pass an `options` object, or you can specify everything explicitly in the
-arguments. So these are equivalent:
+explicitly specify the key, or pass an options object.
 
 ```javascript
-const options = {
+container.registerInstance({}, {
 	key: 'foo',
 	lifetime: lifetime.memory(),
-	injections: [ inject.property('foo', 'bar'), inject.method('doStuff', [ 'arg1', 'arg2' ]) ]
-};
+	injections: [inject.property('foo', 'bar'), inject.method('doStuff', ['arg1', 'arg2'])]
+});
 
-container.registerInstance({}, options);
-container.registerInstance({}, options.key, options.lifetime, options.injections[0], options.injections[1]);
+// or just the key
+container.registerInstance({}, 'foo');
+
+// or without a key if the name of the type can be deduced
+class foo {}
+container.registerType(foo);
 ```
 
 ### Registering an instance
@@ -536,7 +525,7 @@ Events emitted by a `Container` instance:
 Events emitted by an `ObjectBuilder` instance:
 
 - `building` - when an object is being built
-  1. `arguments[0]`: metadata for the type: `{ args: [], ctor: Function, name: 'name' }`
+  1. `arguments[0]`: metadata for the type: `{ args: [], ctor: Function, name: string }`
 - `built` - when an object has been built
   1. `arguments[0]`: metadata for the type (see above)
   2. `arguments[1]`: the object instance
@@ -554,12 +543,4 @@ container
 container.builder
 	.on('building', info => console.log('building ' + info.name))
 	.on('built', info => console.log('built ' + info.name));
-```
-
-## Development
-```bash
-git clone git@github.com:tmont/sahara.git
-cd sahara
-npm install
-npm test
 ```

@@ -1,12 +1,35 @@
 {
+	"compileOnSave": false,
 	"compilerOptions": {
+		"allowJs": false,
+		"allowSyntheticDefaultImports": true,
+		"allowUnreachableCode": false,
+		"declaration": true,
+		"forceConsistentCasingInFileNames": true,
+		"lib": [
+			"es2017"
+		],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"noEmitOnError": true,
 		"noImplicitAny": true,
-		"noImplicitThis": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": false,
+		"outDir": "./dist",
+		"preserveConstEnums": true,
+		"resolveJsonModule": true,
+		"rootDir": ".",
+		"skipLibCheck": true,
+		"sourceMap": true,
 		"strictNullChecks": true,
-		"noEmit": true
+		"target": "es2017",
+		"types": [
+			"node"
+		]
 	},
-	"files": [
-		"tests/ts/test.ts",
-		"index.d.ts"
+	"include": [
+		"index.ts",
+		"src",
 	]
 }

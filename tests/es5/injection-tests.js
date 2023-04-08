@@ -1,4 +1,4 @@
-const should = require('should');
+require('should');
 const sahara = require('../../');
 const Container = sahara.Container;
 const inject = sahara.inject;
@@ -54,7 +54,7 @@ describe('Injection', function() {
 
 	it('should inject method', function() {
 		function Foo() {
-			this.bar = this.baz = null;
+			this.bar = this.baz = {};
 			this.method = function(/** Bar */bar, /** Baz */baz) {
 				this.bar = bar;
 				this.baz = baz;

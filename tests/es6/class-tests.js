@@ -1,4 +1,4 @@
-const should = require('should');
+require('should');
 const sahara = require('../../');
 const Container = sahara.Container;
 
@@ -54,9 +54,8 @@ describe('Classes', function() {
 			value: 'ActualNameOfClass',
 		});
 
-		const container = new Container()
-			.registerInstanceAndArgAlias('world', 'hello')
-			.registerType(Foo);
+		const container = new Container().registerInstanceAndArgAlias('world', 'hello', 'hello');
+		container.registerType(Foo);
 
 		container.resolveSync(Foo).should.be.instanceOf(Foo);
 		container.resolveSync('ActualNameOfClass').should.be.instanceOf(Foo);
@@ -76,7 +75,7 @@ describe('Classes', function() {
 		};
 
 		const container = new Container()
-			.registerInstanceAndArgAlias('world', 'hello')
+			.registerInstanceAndArgAlias('world', 'hello', 'hello')
 			.registerType(Foo)
 			.registerType(Bar);
 

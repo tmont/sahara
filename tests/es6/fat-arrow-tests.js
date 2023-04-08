@@ -1,4 +1,4 @@
-const should = require('should');
+require('should');
 const sahara = require('../../');
 const Container = sahara.Container;
 

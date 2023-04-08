@@ -99,7 +99,7 @@ describe('Container', () => {
 			};
 
 			const resolved = new Container()
-				.registerInstance('foo', 'asdf', lifetime)
+				.registerInstance('foo', { key: 'asdf', lifetime })
 				.resolveSync('asdf');
 
 			resolved.should.equal('foo');
@@ -117,7 +117,7 @@ describe('Container', () => {
 			const injection2 = sahara.inject.propertyValue('bar', 'world');
 
 			const resolved = new Container()
-				.registerType(Foo, null, null, injection1, injection2)
+				.registerType(Foo, { injections: [ injection1, injection2 ] })
 				.resolveSync(Foo);
 
 			resolved.should.be.instanceOf(Foo);
