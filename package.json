@@ -23,10 +23,10 @@
 		"tarjan-graph": "3.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "18.15.11",
-		"mocha": "10.2.0",
+		"@types/node": "22.10.7",
+		"mocha": "11.0.1",
 		"should": "13.2.3",
-		"typescript": "5.0.4"
+		"typescript": "5.7.3"
 	},
 	"scripts": {
 		"build": "./node_modules/.bin/tsc",
