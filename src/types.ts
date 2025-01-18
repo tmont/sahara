@@ -18,10 +18,13 @@ export type BuilderEventMap = {
 export type BuilderEvent = keyof BuilderEventMap;
 
 export interface Resolvable<TResolveMap extends Record<string, unknown> = Record<string, unknown>> {
-	resolve<T>(name: string, context: unknown): Promise<T>;
+	resolve<T = never, K extends keyof TResolveMap = never>(
+		key: [T] extends [never] ? K : Constructor<T> | string,
+		context?: ResolveContext,
+	): Promise<[T] extends [never] ? TResolveMap[K] : T>;
 
 	resolveSync<T = never, K extends keyof TResolveMap = never>(
-		key: Constructor<T> | K,
+		key: [T] extends [never] ? K : Constructor<T> | string,
 		context?: ResolveContext,
 	): [T] extends [never] ? TResolveMap[K] : T;
 }

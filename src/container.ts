@@ -294,17 +294,14 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 		return !!this.registrations[keyStr];
 	}
 
-	/**
-	 * Resolve a type to an instance synchronously
-	 */
-	public resolveSync<T = never, K extends keyof TResolveMap = never>(
-		key: Constructor<T> | K,
-		context?: ResolveContext,
-	): [T] extends [never] ? TResolveMap[K] : T {
-		const keyStr = typeof(key) === 'function' ? getKeyFromCtor(key) : key as string;
-		context = context || createResolverContext();
+	private resolveExisting(
+		key: Constructor | symbol | number | string,
+		context: ResolveContext,
+	): [ unknown, string, Registration ] {
+		const keyStr = typeof (key) === 'function' ? getKeyFromCtor(key) : String(key);
 
-		let registration = this.registrations[keyStr];
+
+		const registration = this.registrations[keyStr];
 		this.emit('resolving', keyStr);
 		if (!registration) {
 			throw new Error(getUnregisteredErrorMessage(keyStr, context));
@@ -313,12 +310,29 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 		const existing = registration.lifetime.fetch<any>();
 		if (existing) {
 			this.emit('resolved', keyStr, existing);
-			return existing;
+			return [ existing, keyStr, registration ];
 		}
 
 		context.history.push(registration);
 
-		let instance: TResolveMap[K];
+		return [ undefined, keyStr, registration ];
+	}
+
+	/**
+	 * Resolve a type to an instance synchronously
+	 */
+	public resolveSync<T = never, K extends keyof TResolveMap = never>(
+		key: [T] extends [never] ? K : Constructor<T> | string,
+		context?: ResolveContext,
+	): [T] extends [never] ? TResolveMap[K] : T {
+		context = context || createResolverContext();
+		let [ existing, keyStr, registration ] = this.resolveExisting(key, context);
+
+		if (existing) {
+			return existing as any;
+		}
+
+		let instance: any;
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
@@ -326,7 +340,7 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		} else if (registration instanceof DelegateRegistration) {
-			instance = this.resolveSync(registration.delegateKey as K, context);
+			instance = this.resolveSync(registration.delegateKey, context);
 		} else {
 			throw new Error('Unknown registration: ' + registration.constructor.name);
 		}
@@ -343,25 +357,15 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 	 * Resolve a type to an instance asynchronously
 	 */
 	public async resolve<T = never, K extends keyof TResolveMap = never>(
-		key: Constructor<T> | K,
+		key: [T] extends [never] ? K : Constructor<T> | string,
 		context?: ResolveContext,
 	): Promise<[T] extends [never] ? TResolveMap[K] : T> {
-		const keyStr = typeof(key) === 'function' ? getKeyFromCtor(key) : key as string;
 		context = context || createResolverContext();
+		let [ existing, keyStr, registration ] = this.resolveExisting(key, context);
 
-		let registration = this.registrations[keyStr];
-		this.emit('resolving', keyStr);
-		if (!registration) {
-			throw new Error(getUnregisteredErrorMessage(keyStr, context));
-		}
-
-		const existing = registration.lifetime.fetch<any>();
 		if (existing) {
-			this.emit('resolved', keyStr, existing);
-			return existing;
+			return existing as any;
 		}
-
-		context.history.push(registration);
 
 		let instance;
 
@@ -387,7 +391,7 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 	 * Same as resolve(), but won't ever reject
 	 */
 	public async tryResolve<T = never, K extends keyof TResolveMap = never>(
-		key: Constructor<T> | K,
+		key: [T] extends [never] ? K : Constructor<T> | string,
 	): Promise<([T] extends [never] ? TResolveMap[K] : T) | undefined> {
 		try {
 			return await this.resolve(key);
@@ -400,7 +404,7 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 	 * Same as resolveSync(), but won't ever throw
 	 */
 	public tryResolveSync<T = never, K extends keyof TResolveMap = never>(
-		key: Constructor<T> | K,
+		key: [T] extends [never] ? K : Constructor<T> | string,
 	): ([T] extends [never] ? TResolveMap[K] : T) | undefined {
 		try {
 			return this.resolveSync(key);
