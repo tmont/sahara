@@ -131,7 +131,9 @@ export class DelegateRegistration extends Registration {
 	}
 }
 
-export class Container extends EventEmitter<ContainerEventMap> implements Resolvable {
+export class Container<TResolveMap extends Record<string, any> = Record<string, unknown>>
+	extends EventEmitter<ContainerEventMap>
+	implements Resolvable<TResolveMap> {
 	public readonly parent: Container | null;
 	private readonly registrations: { [key: string]: Registration };
 	private graph: Graph;
@@ -295,8 +297,11 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 	/**
 	 * Resolve a type to an instance synchronously
 	 */
-	public resolveSync<T = unknown>(key: Constructor<T> | string, context?: ResolveContext): T {
-		const keyStr = typeof(key) === 'function' ? getKeyFromCtor(key) : key;
+	public resolveSync<T = never, K extends keyof TResolveMap = never>(
+		key: Constructor<T> | K,
+		context?: ResolveContext,
+	): [T] extends [never] ? TResolveMap[K] : T {
+		const keyStr = typeof(key) === 'function' ? getKeyFromCtor(key) : key as string;
 		context = context || createResolverContext();
 
 		let registration = this.registrations[keyStr];
@@ -305,7 +310,7 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 			throw new Error(getUnregisteredErrorMessage(keyStr, context));
 		}
 
-		const existing = registration.lifetime.fetch<T>();
+		const existing = registration.lifetime.fetch<any>();
 		if (existing) {
 			this.emit('resolved', keyStr, existing);
 			return existing;
@@ -313,7 +318,7 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 
 		context.history.push(registration);
 
-		let instance: T;
+		let instance: TResolveMap[K];
 		if (registration instanceof InstanceRegistration) {
 			instance = registration.instance;
 		} else if (registration instanceof TypeRegistration) {
@@ -321,7 +326,7 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 		} else if (registration instanceof FactoryRegistration) {
 			instance = registration.factory(this);
 		} else if (registration instanceof DelegateRegistration) {
-			instance = this.resolveSync(registration.delegateKey, context);
+			instance = this.resolveSync(registration.delegateKey as K, context);
 		} else {
 			throw new Error('Unknown registration: ' + registration.constructor.name);
 		}
@@ -337,8 +342,11 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 	/**
 	 * Resolve a type to an instance asynchronously
 	 */
-	public async resolve<T = unknown>(key: Function | string, context?: ResolveContext): Promise<T> {
-		const keyStr = typeof (key) === 'function' ? getKeyFromCtor(key) : key;
+	public async resolve<T = never, K extends keyof TResolveMap = never>(
+		key: Constructor<T> | K,
+		context?: ResolveContext,
+	): Promise<[T] extends [never] ? TResolveMap[K] : T> {
+		const keyStr = typeof(key) === 'function' ? getKeyFromCtor(key) : key as string;
 		context = context || createResolverContext();
 
 		let registration = this.registrations[keyStr];
@@ -347,7 +355,7 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 			throw new Error(getUnregisteredErrorMessage(keyStr, context));
 		}
 
-		const existing = registration.lifetime.fetch<T>();
+		const existing = registration.lifetime.fetch<any>();
 		if (existing) {
 			this.emit('resolved', keyStr, existing);
 			return existing;
@@ -378,22 +386,26 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 	/**
 	 * Same as resolve(), but won't ever reject
 	 */
-	public async tryResolve<T = unknown>(key: Function | string): Promise<T | undefined> {
+	public async tryResolve<T = never, K extends keyof TResolveMap = never>(
+		key: Constructor<T> | K,
+	): Promise<([T] extends [never] ? TResolveMap[K] : T) | undefined> {
 		try {
 			return await this.resolve(key);
 		} catch (e) {
-			return undefined;
+			return;
 		}
 	}
 
 	/**
 	 * Same as resolveSync(), but won't ever throw
 	 */
-	public tryResolveSync<T = unknown>(key: Constructor<T> | string): T | undefined {
+	public tryResolveSync<T = never, K extends keyof TResolveMap = never>(
+		key: Constructor<T> | K,
+	): ([T] extends [never] ? TResolveMap[K] : T) | undefined {
 		try {
 			return this.resolveSync(key);
 		} catch (e) {
-			return undefined;
+			return;
 		}
 	}
 
@@ -434,8 +446,8 @@ export class Container extends EventEmitter<ContainerEventMap> implements Resolv
 	/**
 	 * Creates a clone of the container in its current state
 	 */
-	public createChildContainer(withEvents = false): Container {
-		const childContainer = new Container(this);
+	public createChildContainer(withEvents = false): Container<TResolveMap> {
+		const childContainer = new Container<TResolveMap>(this);
 
 		Object.keys(this.registrations).forEach((key) => {
 			childContainer.registrations[key] = this.registrations[key];

@@ -717,7 +717,7 @@ describe('Container', () => {
 			storeCalled.should.equal(true, 'lifetime.store() should have been called');
 		}));
 
-		it('should not throw if key does not exist for tryResolveSync()', asyncTest(async () => {
+		it('should not throw if key does not exist for tryResolve()', asyncTest(async () => {
 			const resolved = await new Container().tryResolve('foo');
 			should.strictEqual(resolved, undefined);
 		}));

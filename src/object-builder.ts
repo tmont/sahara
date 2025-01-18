@@ -27,7 +27,7 @@ export class ObjectBuilder extends EventEmitter<BuilderEventMap> {
 		this.resolvable = resolvable;
 	}
 
-	private buildObject<T, TArgs extends any[] = any[]>(typeInfo: TypeInfo, args: TArgs): T {
+	private buildObject<T, TArgs extends any[] = unknown[]>(typeInfo: TypeInfo, args: TArgs): T {
 		const ctor = typeInfo.ctor;
 		if (isConstructable<T>(ctor, typeInfo)) {
 			return new ctor(...args);

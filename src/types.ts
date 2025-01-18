@@ -1,3 +1,5 @@
+import {ResolveContext} from './container';
+
 export type RegisteringEventType = 'type' | 'instance' | 'factory';
 
 export type ContainerEventMap = {
@@ -15,9 +17,13 @@ export type BuilderEventMap = {
 
 export type BuilderEvent = keyof BuilderEventMap;
 
-export interface Resolvable {
+export interface Resolvable<TResolveMap extends Record<string, unknown> = Record<string, unknown>> {
 	resolve<T>(name: string, context: unknown): Promise<T>;
-	resolveSync<T>(name: string, context: unknown): T;
+
+	resolveSync<T = never, K extends keyof TResolveMap = never>(
+		key: Constructor<T> | K,
+		context?: ResolveContext,
+	): [T] extends [never] ? TResolveMap[K] : T;
 }
 
 export type Constructor<T = unknown> = new (...args: any[]) => T;
@@ -31,7 +37,7 @@ export interface TypeInfoArgument {
 	parsedAs: TypeInfoParseType;
 }
 
-export interface TypeInfo<T = any> {
+export interface TypeInfo {
 	args: TypeInfoArgument[];
 	ctor: Function;
 	name: string;

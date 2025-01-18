@@ -29,7 +29,7 @@ export class PropertyInjection<TType = unknown> implements Injection<TType> {
 	) {}
 
 	public async inject(object: TType, container: Container): Promise<void> {
-		object[this.propertyName] = await container.resolve(this.valueKey);
+		object[this.propertyName] = await container.resolve(this.valueKey) as any;
 	}
 
 	public injectSync(object: TType, container: Container): void {
