@@ -17,7 +17,7 @@
 	"main": "dist/index.js",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/tmont/sahara.git"
+		"url": "git+https://github.com/tmont/sahara.git"
 	},
 	"dependencies": {
 		"tarjan-graph": "3.0.0"
