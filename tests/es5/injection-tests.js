@@ -34,6 +34,18 @@ describe('Injection', function() {
 		instance.bar.should.be.instanceOf(Bar);
 	});
 
+	it('should inject property with failed resolution', function() {
+		function Foo() {
+			this.bar = null;
+		}
+
+		(function() {
+			new Container()
+				.registerType(Foo, {injections: [inject.property('bar', 'Bar')]})
+				.resolveSync('Foo');
+		}).should.throwError('Nothing with key "Bar" is registered in the container; error occurred while resolving "Foo.bar" -> "Bar"');
+	});
+
 	it('should inject method with args', function() {
 		function Foo() {
 			this.foo = this.bar = null;
@@ -75,6 +87,25 @@ describe('Injection', function() {
 		instance.baz.should.be.instanceOf(Baz);
 	});
 
+	it('should inject method and throw for failed resolution', function() {
+		function Foo() {
+			this.bar = {};
+			this.method = function(/** x */ x, /** Bar */bar) {
+				this.bar = bar;
+			};
+		}
+
+		function Bar(/** Baz */baz) {}
+
+		(function() {
+			new Container()
+				.registerInstance('x', 'x')
+				.registerType(Foo, {injections: [inject.method('method')]})
+				.registerType(Bar)
+				.resolveSync('Foo');
+		}).should.throwError('Nothing with key "Baz" is registered in the container; error occurred while resolving "Foo.method()" -> "Bar" -> "Baz"');
+	});
+
 	it('should throw if method does not exist', function() {
 		function Foo() {}
 		(function() {
@@ -111,6 +142,19 @@ describe('Injection', function() {
 			const resolved = await container.resolve('Foo');
 			resolved.should.have.property('bar');
 			resolved.bar.should.be.instanceOf(Bar);
+		}));
+
+		it('should inject property with failed resolution', asyncTest(async () => {
+			function Foo() {
+				this.bar = null;
+			}
+
+			const container = new Container()
+				.registerType(Foo, {injections: [inject.property('bar', 'Bar')]});
+
+			const message = 'Nothing with key "Bar" is registered in the container; error occurred while resolving "Foo.bar" -> "Bar"';
+
+			await shouldReject(container.resolve(Foo), message);
 		}));
 
 		it('should inject method with args', asyncTest(async () => {
@@ -152,6 +196,27 @@ describe('Injection', function() {
 			resolved.should.be.instanceOf(Foo);
 			resolved.bar.should.be.instanceOf(Bar);
 			resolved.baz.should.be.instanceOf(Baz);
+		}));
+
+		it('should inject method and throw for failed resolution', asyncTest(async () => {
+			function Foo() {
+				this.bar = this.baz = {};
+				this.method = function(/** Bar */bar, /** Baz */baz) {
+					this.bar = bar;
+					this.baz = baz;
+				};
+			}
+
+			function Bar() {}
+			function Baz() {}
+
+			const container = new Container()
+				.registerType(Foo, {injections: [inject.method('method')]})
+				.registerType(Bar);
+
+			const message = 'Nothing with key "Baz" is registered in the container; error occurred while resolving "Foo.method()" -> "Bar" -> "Baz"';
+
+			await shouldReject(container.resolve(Foo), message);
 		}));
 
 		it('should raise error if method does not exist', asyncTest(async () => {

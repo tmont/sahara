@@ -1,6 +1,17 @@
-import {Container} from './container';
+import {Container, ResolveContext, ResolveHistoryItem} from './container';
 import {Constructor} from './types';
 import * as util from './util';
+
+
+const createContext = (object: unknown, suffix: string, type: ResolveHistoryItem['type']): ResolveContext => {
+	const ctorName = object?.constructor?.name || '?';
+	return {
+		history: [{
+			name: `${ctorName}.${suffix}` + (type === 'MethodInjection' ? '()' : ''),
+			type,
+		}],
+	};
+};
 
 export interface Injection<TType = unknown> {
 	inject(object: TType, container: Container): Promise<void>;
@@ -29,11 +40,13 @@ export class PropertyInjection<TType = unknown> implements Injection<TType> {
 	) {}
 
 	public async inject(object: TType, container: Container): Promise<void> {
-		object[this.propertyName] = await container.resolve(this.valueKey as any) as any;
+		const context = createContext(object, this.propertyName, 'PropertyInjection');
+		object[this.propertyName] = await container.resolve(this.valueKey as any, context) as any;
 	}
 
 	public injectSync(object: TType, container: Container): void {
-		object[this.propertyName] = container.resolveSync(this.valueKey as any) as any;
+		const context = createContext(object, this.propertyName, 'PropertyInjection');
+		object[this.propertyName] = container.resolveSync(this.valueKey as any, context) as any;
 	}
 }
 
@@ -56,10 +69,12 @@ export class MethodInjection<TType = unknown> implements Injection<TType> {
 			throw this.createError();
 		}
 
+		const context = createContext(object, this.methodName, 'MethodInjection');
+
 		const args = this.args || await Promise.all(
 			util.getTypeInfo(method, '$__', 'method')
 				.args
-				.map(argInfo => container.resolve(argInfo.type))
+				.map(argInfo => container.resolve(argInfo.type, context))
 		);
 
 		method.call(object, ...args);
@@ -71,9 +86,11 @@ export class MethodInjection<TType = unknown> implements Injection<TType> {
 			throw this.createError();
 		}
 
+		const context = createContext(object, this.methodName, 'MethodInjection');
+
 		const args = this.args || util.getTypeInfo(method, '$__', 'method')
 			.args
-			.map(argInfo => container.resolveSync(argInfo.type)
+			.map(argInfo => container.resolveSync(argInfo.type, context)
 		);
 
 		method.call(object, ...args);

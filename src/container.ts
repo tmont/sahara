@@ -8,6 +8,7 @@ import * as utils from './util';
 
 export interface ResolveHistoryItem {
 	name: string;
+	type: 'MethodInjection' | 'PropertyInjection' | null;
 }
 
 export interface ResolveContext {
@@ -19,7 +20,7 @@ type RegistrationArgs = PartialOrNull<RegistrationOptions> | RegistrationOptions
 const getHistoryString = (context: ResolveContext, current: string): string => {
 	const history = context.history.concat([]);
 	if (current) {
-		history.push({ name: current });
+		history.push({ name: current, type: null });
 	}
 
 	return history.map(registration => `"${registration.name}"`).join(' -> ');
@@ -314,7 +315,7 @@ export class Container<TResolveMap extends Record<string, any> = Record<string, 
 			return [ existing, keyStr, registration ];
 		}
 
-		context.history.push(registration);
+		context.history.push({ name: registration.name, type: null });
 
 		return [ undefined, keyStr, registration ];
 	}
