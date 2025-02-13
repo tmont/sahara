@@ -32,8 +32,9 @@ function getUnregisteredErrorMessage(key: string, context?: ResolveContext): str
 	}
 
 	if (key.startsWith(utils.argPrefix)) {
-		message += `; you may be missing a ` +
-			`doc comment or a call to registerAliasAsArg`;
+		const argName = key.substring(utils.argPrefix.length);
+		message += `; you are probably missing a registration for arg alias "${argName}", e.g. ` +
+			`container.registerType(MyObject, { argAlias: '${argName}' })`;
 	}
 
 	return message;

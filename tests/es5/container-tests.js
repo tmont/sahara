@@ -385,8 +385,8 @@ describe('Container', () => {
 
 				await new Container().registerType(Foo).resolve(Foo)
 					.should.rejectedWith('Nothing with key "$arg:bar" is registered in the container; ' +
-						'error occurred while resolving "Foo" -> "$arg:bar"; you may be missing a doc comment ' +
-						'or a call to registerAliasAsArg');
+						'error occurred while resolving "Foo" -> "$arg:bar"; you are probably missing a ' +
+						'registration for arg alias "bar", e.g. container.registerType(MyObject, { argAlias: \'bar\' })');
 			});
 
 			it('should fail to resolveSync if doc comment is missing and no arg is registered', async function() {
@@ -396,8 +396,8 @@ describe('Container', () => {
 
 				(function() { new Container().registerType(Foo).resolveSync(Foo); })
 					.should.throwError('Nothing with key "$arg:bar" is registered in the container; ' +
-						'error occurred while resolving "Foo" -> "$arg:bar"; you may be missing a doc comment ' +
-						'or a call to registerAliasAsArg');
+						'error occurred while resolving "Foo" -> "$arg:bar"; you are probably missing a ' +
+						'registration for arg alias "bar", e.g. container.registerType(MyObject, { argAlias: \'bar\' })');
 			});
 
 			it('should resolveSync via named argument type without doc comment', function() {
